@@ -1,0 +1,23 @@
+# Pastas de build e output
+**/bin/
+**/obj/
+.vs/
+.vscode/
+
+# Arquivos locais de configuração e ambiente
+.env
+appsettings.Development.json
+appsettings.Local.json
+
+# Logs e arquivos temporários
+*.log
+*.tmp
+*.bak
+
+# Pastas de persistência do Docker (opcional, mas recomendado)
+# Como o volume pgdata é gerenciado pelo Docker, não precisamos ignorar a pasta
+# mas se você estivesse usando volumes mapeados locais, ignoraria aqui.
+
+# Arquivos de usuário do Rider ou Visual Studio
+*.suo
+*.user.env
