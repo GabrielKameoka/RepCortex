@@ -66,15 +66,16 @@ public class AnaliseSentimentoService : IAnaliseSentimentoService
 
     public Task<string> AnalisarSentimentoAsync(string texto)
     {
+        // Mude de string.IsNullOrWhiteSpace para garantir que retorne antes de quebrar
         if (string.IsNullOrWhiteSpace(texto))
             return Task.FromResult("Neutro");
 
-        // Cria o motor de predição com o cérebro que acabamos de treinar
         var predictionEngine = _mlContext.Model.CreatePredictionEngine<AvaliacaoData, AvaliacaoPrediction>(_modelo);
 
-        // Pede para a IA prever o sentimento de uma frase que ela NUNCA viu antes
+        // Se predictionEngine sumiu da memória por falta do Singleton, daria NullRef aqui
         var predicao = predictionEngine.Predict(new AvaliacaoData { Texto = texto });
 
-        return Task.FromResult(predicao.SentimentoPrevisto);
+        // Garanta que a predição ou o rótulo previsto não venham nulos
+        return Task.FromResult(predicao?.SentimentoPrevisto ?? "Neutro");
     }
 }

@@ -19,6 +19,15 @@ public class AvaliacaoRepository : IAvaliacaoRepository
         await _context.Avaliacoes.AddAsync(avaliacao);
         await _context.SaveChangesAsync();
     }
+
+
+    public async Task<IEnumerable<Avaliacao>> ObterTodosAsync(string tenantId)
+    {
+        return await _context.Avaliacoes
+            .Where(a => a.TenantId == tenantId) // isolamento por inquilino(tenant)
+            .AsNoTracking() // melhor a performance
+            .ToListAsync();
+    }
     
     public async Task<Avaliacao?> ObterPorIdAsync(Guid id)
     {
@@ -31,10 +40,11 @@ public class AvaliacaoRepository : IAvaliacaoRepository
         await _context.SaveChangesAsync();
     }
     
-    public async Task<bool> JaAvaliouProdutoAsync(string produtoId, string fingerprint)
+    public async Task<bool> JaAvaliouProdutoAsync(string produtoId, string fingerprint, string tenantId)
     {
-        // checa se existe alguma linha com esse Produto E esse Fingerprint
         return await _context.Avaliacoes
-            .AnyAsync(a => a.ProdutoId == produtoId && a.Fingerprint == fingerprint);
+            .AnyAsync(a => a.ProdutoId == produtoId && 
+                           a.Fingerprint == fingerprint && 
+                           a.TenantId == tenantId);
     }
 }

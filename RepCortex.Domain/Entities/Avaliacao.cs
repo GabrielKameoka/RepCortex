@@ -1,3 +1,5 @@
+using RepCortex.Domain.Interfaces.Entities;
+
 namespace RepCortex.Domain.Entities;
 
 public enum StatusAvaliacao
@@ -7,10 +9,11 @@ public enum StatusAvaliacao
     Rejeitada
 }
 
-public class Avaliacao
+public class Avaliacao : ITenantEntity
 {
     public Guid Id { get; private set; } = Guid.NewGuid();
     public string ClienteId { get; private set; }
+    public string TenantId { get; private set; }
     public string UsuarioIdExterno { get; private set; }
     public string ProdutoId { get; private set; }
     public int Nota { get; private set; }
@@ -21,15 +24,19 @@ public class Avaliacao
     public StatusAvaliacao Status { get; private set; } = StatusAvaliacao.Pendente;
     public string Sentimento { get; private set; } = "Não analizado";
 
-    public Avaliacao(string clienteId, string usuarioIdExterno, string produtoId, int nota, string comentario,      
-        string ipOrigem, string fingerprint, string sentimento)
+    public Avaliacao(string tenantId, string clienteId, string usuarioIdExterno, string produtoId, int nota,
+        string comentario, string ipOrigem, string fingerprint, string sentimento)
     {
+        if (string.IsNullOrWhiteSpace(tenantId))
+            throw new ArgumentException("O TenantId é obrigatório.");
+
         if (nota < 1 || nota > 5)
             throw new ArgumentException("A nota deve estar entre 1 e 5.");
 
         if (string.IsNullOrWhiteSpace(clienteId) || string.IsNullOrWhiteSpace(usuarioIdExterno))
             throw new ArgumentException("Identificadores inválidos.");
 
+        TenantId = tenantId;
         ClienteId = clienteId;
         UsuarioIdExterno = usuarioIdExterno;
         ProdutoId = produtoId;

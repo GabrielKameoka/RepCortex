@@ -1,35 +1,48 @@
 using RepCortex.Application.DTOs;
+using RepCortex.Application.Interfaces;
 using RepCortex.Domain.Entities;
 using RepCortex.Domain.Interfaces;
 using RepCortex.Domain.Interfaces.Service;
 
 namespace RepCortex.Application.UseCases;
 
-public class CriarAvaliacaoUseCase
+public class CriarAvaliacaoUseCase : ICriarAvaliacaoUseCase
 {
     private readonly IAvaliacaoRepository _repository;
-    private readonly IAnaliseSentimentoService _sentimentService; // <- Injetando a IA
+    private readonly IAnaliseSentimentoService _sentimentService;
+    private readonly ITenantService _tenantService; 
 
-    public CriarAvaliacaoUseCase(IAvaliacaoRepository repository, IAnaliseSentimentoService sentimentService)
+    
+    public CriarAvaliacaoUseCase(
+        IAvaliacaoRepository repository,
+        IAnaliseSentimentoService sentimentService,
+        ITenantService tenantService)
     {
         _repository = repository;
         _sentimentService = sentimentService;
+        _tenantService = tenantService; 
     }
 
     public async Task<Avaliacao> ExecutarAsync(CriarAvaliacaoRequest request)
     {
-        // 1. Barreira Anti-Fraude
-        var jaAvaliou = await _repository.JaAvaliouProdutoAsync(request.ProdutoId, request.Fingerprint);
+        var tenantId = _tenantService.ObterTenantId();
+        
+        var jaAvaliou = await _repository.JaAvaliouProdutoAsync(
+            request.ProdutoId,
+            request.Fingerprint,
+            tenantId 
+        );
+
         if (jaAvaliou)
         {
-            throw new InvalidOperationException("Erro de validação: Este dispositivo já enviou uma avaliação para este produto.");
+            throw new InvalidOperationException(
+                "Erro de validação: Este dispositivo já enviou uma avaliação para este produto.");
         }
-
-        // 2. Chamada para o Serviço de Inteligência Artificial local
+        
         var sentimentoDetectado = await _sentimentService.AnalisarSentimentoAsync(request.Comentario);
-
-        // 3. Criação da Entidade passando o resultado da IA
+        
         var novaAvaliacao = new Avaliacao(
+            tenantId, 
             request.ClienteId,
             request.UsuarioIdExterno,
             request.ProdutoId,
@@ -37,10 +50,9 @@ public class CriarAvaliacaoUseCase
             request.Comentario,
             request.IpOrigem,
             request.Fingerprint,
-            sentimentoDetectado // <- Passando para o construtor rico
+            sentimentoDetectado
         );
 
-        // 4. Salva no banco de dados
         await _repository.AdicionarAsync(novaAvaliacao);
         return novaAvaliacao;
     }
