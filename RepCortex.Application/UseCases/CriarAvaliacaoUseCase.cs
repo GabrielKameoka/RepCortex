@@ -1,6 +1,7 @@
 using RepCortex.Application.DTOs;
 using RepCortex.Application.Interfaces;
 using RepCortex.Domain.Entities;
+using RepCortex.Domain.Entities.Enums;
 using RepCortex.Domain.Interfaces;
 using RepCortex.Domain.Interfaces.Service;
 
@@ -39,7 +40,14 @@ public class CriarAvaliacaoUseCase : ICriarAvaliacaoUseCase
                 "Erro de validação: Este dispositivo já enviou uma avaliação para este produto.");
         }
         
-        var sentimentoDetectado = await _sentimentService.AnalisarSentimentoAsync(request.Comentario);
+        // A IA retorna uma string (ex: "Positivo")
+        var sentimentoTexto = await _sentimentService.AnalisarSentimentoAsync(request.Comentario);
+        
+        // 2. Mapeia a string para o Enum com segurança
+        // Se a IA retornar algo inesperado, o padrão "NaoAnalisado" evita quebras no sistema.
+        if (!Enum.TryParse<SentimentoAvaliacao>(sentimentoTexto, true, out var sentimentoEnum))
+            sentimentoEnum = SentimentoAvaliacao.NaoAnalisado;
+        
         
         var novaAvaliacao = new Avaliacao(
             tenantId, 
@@ -50,7 +58,7 @@ public class CriarAvaliacaoUseCase : ICriarAvaliacaoUseCase
             request.Comentario,
             request.IpOrigem,
             request.Fingerprint,
-            sentimentoDetectado
+            sentimentoEnum
         );
 
         await _repository.AdicionarAsync(novaAvaliacao);

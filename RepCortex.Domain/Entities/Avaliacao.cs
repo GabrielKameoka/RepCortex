@@ -1,13 +1,7 @@
+using RepCortex.Domain.Entities.Enums;
 using RepCortex.Domain.Interfaces.Entities;
 
 namespace RepCortex.Domain.Entities;
-
-public enum StatusAvaliacao
-{
-    Pendente,
-    Aprovada,
-    Rejeitada
-}
 
 public class Avaliacao : ITenantEntity
 {
@@ -22,11 +16,12 @@ public class Avaliacao : ITenantEntity
     public string Fingerprint { get; private set; }
     public DateTime DataCriacao { get; private set; } = DateTime.UtcNow;
     public StatusAvaliacao Status { get; private set; } = StatusAvaliacao.Pendente;
-    public string Sentimento { get; private set; } = "Não analizado";
+    public SentimentoAvaliacao Sentimento { get; private set; } = SentimentoAvaliacao.NaoAnalisado;
 
     public Avaliacao(string tenantId, string clienteId, string usuarioIdExterno, string produtoId, int nota,
-        string comentario, string ipOrigem, string fingerprint, string sentimento)
+        string comentario, string ipOrigem, string fingerprint, SentimentoAvaliacao sentimento)
     {
+        // 1. Validações de Consistência (Guards)
         if (string.IsNullOrWhiteSpace(tenantId))
             throw new ArgumentException("O TenantId é obrigatório.");
 
@@ -46,17 +41,27 @@ public class Avaliacao : ITenantEntity
         Fingerprint = fingerprint;
         Sentimento = sentimento;
 
-        // REGRA DE NEGÓCIO DA IA: 
-        // Se a nota for boa (4 ou 5) mas o texto for negativo, o status fica retido como Pendente para moderação.
-        if ((nota >= 4) && sentimento == "Negativo")
-        {
-            Status = StatusAvaliacao.Pendente;
-        }
-        // Caso contrário, se for nota 5 e sentimento positivo, pode até auto-aprovar no futuro.
-        else
-        {
-            Status = StatusAvaliacao.Pendente;
-        }
+        // 2. Executa a Esteira de Moderação Automática baseada nas regras de IA
+        Status = DefinirStatusInicial(nota, sentimento);
+    }
+    
+    // Encapsula as Regras de Negócio de forma isolada e legível
+    private StatusAvaliacao DefinirStatusInicial(int nota, SentimentoAvaliacao sentimento)
+    {
+        // Nota máxima com feedback explicitamente positivo é auto-aprovada
+        if (nota == 5 && sentimento == SentimentoAvaliacao.Positivo)
+            return StatusAvaliacao.Aprovada;
+
+        // Nota alta com texto negativo indica possível ironia ou reclamação oculta (Retém para moderação)
+        if (nota >= 4 && sentimento == SentimentoAvaliacao.Negativo)
+            return StatusAvaliacao.Pendente;
+
+        // Notas baixas (críticas) sempre entram como pendentes para o lojista analisar o feedback do produto
+        if (nota <= 2)
+            return StatusAvaliacao.Pendente;
+
+        // Qualquer outro cenário cai na regra geral de segurança
+        return StatusAvaliacao.Pendente;
     }
 
     public void Aprovar() => Status = StatusAvaliacao.Aprovada;
