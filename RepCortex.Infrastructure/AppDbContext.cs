@@ -1,18 +1,24 @@
 using Microsoft.EntityFrameworkCore;
 using RepCortex.Domain.Entities;
+using RepCortex.Domain.Interfaces.Service;
 
 namespace RepCortex.Infrastructure.Data;
 
 public class AppDbContext : DbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    private readonly ITenantService _tenantService;
+
+    public AppDbContext(DbContextOptions<AppDbContext> options, ITenantService tenantService) : base(options)
+    {
+        _tenantService = tenantService; 
+    }
 
     public DbSet<Avaliacao> Avaliacoes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-
+        modelBuilder.Entity<Avaliacao>().HasQueryFilter(a => a.TenantId == _tenantService.ObterTenantId());
         // Mapeamento fluente (Boa prática ao invés de sujar a entidade com Data Annotations)
         modelBuilder.Entity<Avaliacao>(e =>
         {
@@ -25,4 +31,4 @@ public class AppDbContext : DbContext
             e.Property(a => a.Status).HasConversion<string>(); // Salva o Enum como texto no banco
         });
     }
-}
+}   
