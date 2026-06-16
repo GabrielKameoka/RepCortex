@@ -2,12 +2,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RepCortex.API", "RepCortex.API\RepCortex.API.csproj", "{749EE865-E1F4-4F37-BD00-6E0A353CC4F2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RepCortex.Domain", "RepCortex.Domain\RepCortex.Domain.csproj", "{A73493A2-BC55-4FEC-9A95-310C0B898BA0}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RepCortex.Application", "RepCortex.Application\RepCortex.Application.csproj", "{C6D6CCB6-B8B8-4D08-96C7-98A5A72D7604}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RepCortex.Infrastructure", "RepCortex.Infrastructure\RepCortex.Infrastructure.csproj", "{6BF2174B-86C7-4F23-B9F4-52F13810F152}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RepCortex.Tests", "RepCortex.Tests\RepCortex.Tests.csproj", "{9FE65F14-E07F-4493-A85F-4E0C5A0ACE30}"
 EndProject
 Global
@@ -20,21 +14,12 @@ Global
 		{749EE865-E1F4-4F37-BD00-6E0A353CC4F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{749EE865-E1F4-4F37-BD00-6E0A353CC4F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{749EE865-E1F4-4F37-BD00-6E0A353CC4F2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A73493A2-BC55-4FEC-9A95-310C0B898BA0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A73493A2-BC55-4FEC-9A95-310C0B898BA0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A73493A2-BC55-4FEC-9A95-310C0B898BA0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A73493A2-BC55-4FEC-9A95-310C0B898BA0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C6D6CCB6-B8B8-4D08-96C7-98A5A72D7604}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C6D6CCB6-B8B8-4D08-96C7-98A5A72D7604}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C6D6CCB6-B8B8-4D08-96C7-98A5A72D7604}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C6D6CCB6-B8B8-4D08-96C7-98A5A72D7604}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6BF2174B-86C7-4F23-B9F4-52F13810F152}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6BF2174B-86C7-4F23-B9F4-52F13810F152}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6BF2174B-86C7-4F23-B9F4-52F13810F152}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6BF2174B-86C7-4F23-B9F4-52F13810F152}.Release|Any CPU.Build.0 = Release|Any CPU
 		{9FE65F14-E07F-4493-A85F-4E0C5A0ACE30}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{9FE65F14-E07F-4493-A85F-4E0C5A0ACE30}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9FE65F14-E07F-4493-A85F-4E0C5A0ACE30}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9FE65F14-E07F-4493-A85F-4E0C5A0ACE30}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 EndGlobal

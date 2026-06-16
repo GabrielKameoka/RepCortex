@@ -3,7 +3,7 @@ using RepCortex.Domain.Entities;
 using RepCortex.Domain.Entities.Enums;
 using Xunit;
 
-namespace Verity.UnitTests.Domain;
+namespace RepCortex.Tests;
 
 public class AvaliacaoTests
 {

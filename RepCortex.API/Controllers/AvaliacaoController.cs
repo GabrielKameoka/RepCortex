@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using RepCortex.Application.DTOs;
-using RepCortex.Application.Interfaces;
+using RepCortex.Application.Services;
 
 namespace RepCortex.API.Controllers;
 
@@ -8,65 +8,44 @@ namespace RepCortex.API.Controllers;
 [Route("api/[controller]")]
 public class AvaliacaoController : ControllerBase
 {
-    private readonly ICriarAvaliacaoUseCase _criarAvaliacaoUseCase; 
-    private readonly IObterTodasAvaliacoesUseCase  _obterTodasAvaliacoesUseCase;
+    private readonly AvaliacaoService _avaliacaoService;
 
-    public AvaliacaoController(ICriarAvaliacaoUseCase criarAvaliacaoUseCase, IObterTodasAvaliacoesUseCase obterTodasAvaliacoesUseCase) // <- Injeta a Interface
+    public AvaliacaoController(AvaliacaoService avaliacaoService)
     {
-        _criarAvaliacaoUseCase = criarAvaliacaoUseCase;
-        _obterTodasAvaliacoesUseCase = obterTodasAvaliacoesUseCase;
+        _avaliacaoService = avaliacaoService;
     }
 
     [HttpPost]
-    public async Task<IActionResult> Executar([FromBody] CriarAvaliacaoRequest request)
+    public async Task<IActionResult> Criar([FromBody] CriarAvaliacaoRequest request)
     {
-        try
-        {
-            var avaliacao = await _criarAvaliacaoUseCase.ExecutarAsync(request);
+        var avaliacao = await _avaliacaoService.CriarAsync(request);
         
-            // Em vez de passar a entidade 'avaliacao' inteira, 
-            // criamos um objeto de saída limpo e seguro:
-            var resposta = new {
-                Id = avaliacao.Id,
-                ProdutoId = avaliacao.ProdutoId,
-                Nota = avaliacao.Nota,
-                Comentario = avaliacao.Comentario,
-                Status = avaliacao.Status.ToString(), // Transforma o Enum em texto ("Pendente")
-                Sentimento = avaliacao.Sentimento,
-                DataCriacao = avaliacao.DataCriacao
-            };
-        
-            return StatusCode(201, resposta);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { erro = ex.Message, linha = ex.StackTrace });
-        }
+        return StatusCode(201, new {
+            avaliacao.Id,
+            avaliacao.ProdutoId,
+            avaliacao.Nota,
+            avaliacao.Comentario,
+            Status = avaliacao.Status.ToString(),
+            avaliacao.Sentimento,
+            avaliacao.DataCriacao
+        });
     }
     
     [HttpGet]
     public async Task<IActionResult> ObterTodos()
     {
-        try
-        {
-            var avaliacoes = await _obterTodasAvaliacoesUseCase.ExecutarAsync();
+        var avaliacoes = await _avaliacaoService.ObterTodasAsync();
         
-            // Mapeia para uma resposta segura (ocultando IP e Fingerprint)
-            var resposta = avaliacoes.Select(a => new {
-                a.Id,
-                a.ProdutoId,
-                a.Nota,
-                a.Comentario,
-                Status = a.Status.ToString(),
-                a.Sentimento,
-                a.DataCriacao
-            });
+        var resposta = avaliacoes.Select(a => new {
+            a.Id,
+            a.ProdutoId,
+            a.Nota,
+            a.Comentario,
+            Status = a.Status.ToString(),
+            a.Sentimento,
+            a.DataCriacao
+        });
 
-            return Ok(resposta);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { erro = ex.Message });
-        }
+        return Ok(resposta);
     }
 }
