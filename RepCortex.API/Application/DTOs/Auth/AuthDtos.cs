@@ -13,5 +13,12 @@ public record RegistrarTenantResponse(
     string? Mensagem,
     string? TenantId,
     string? TokenJWT,
-    string? ApiKey
+    string? PublishableKey,
+    string? SecretKey
+);
+
+public record LoginRequest(
+    string TenantId,
+    string Email,
+    string Senha
 );

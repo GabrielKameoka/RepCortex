@@ -6,5 +6,6 @@ public interface ITenantRepository
 {
     Task AdicionarAsync(Tenant tenant);
     Task<bool> ExisteSlugAsync(string id);
-    Task<Tenant?> ObterPorApiKeyAsync(string apiKey);
+    Task<Tenant?> ObterPorPublishableKeyAsync(string publishableKey);
+    Task<Tenant?> ObterPorSecretKeyAsync(string secretKey);
 }

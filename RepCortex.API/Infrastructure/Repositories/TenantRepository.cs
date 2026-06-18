@@ -27,8 +27,13 @@ public class TenantRepository : ITenantRepository
         return await _context.Tenants.AnyAsync(t => t.Id == id.ToLower().Trim());
     }
 
-    public async Task<Tenant?> ObterPorApiKeyAsync(string apiKey)
+    public async Task<Tenant?> ObterPorPublishableKeyAsync(string publishableKey)
     {
-        return await _context.Tenants.FirstOrDefaultAsync(t => t.ApiKey == apiKey);
+        return await _context.Tenants.FirstOrDefaultAsync(t => t.PublishableKey == publishableKey);
+    }
+
+    public async Task<Tenant?> ObterPorSecretKeyAsync(string secretKey)
+    {
+        return await _context.Tenants.FirstOrDefaultAsync(t => t.SecretKey == secretKey);
     }
 }

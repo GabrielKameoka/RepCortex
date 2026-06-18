@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using RepCortex.Domain.Entities;
 using RepCortex.Domain.Interfaces.Service; // Certifique-se de que este namespace bate com suas pastas
 using RepCortex.Infrastructure.Identity;
@@ -42,9 +43,14 @@ public class IdentityService : IIdentityService
         return (false, primeiroErro, null);
     }
 
-    public async Task<(bool Sucesso, string? Token, string? Erro)> LoginAsync(string email, string senha)
+    public async Task<(bool Sucesso, string? Token, string? Erro)> LoginAsync(string tenantId, string email, string senha)
     {
-        var usuarioIdentity = await _userManagerNative.FindByEmailAsync(email);
+        var tenantIdNormalizado = tenantId.ToLower().Trim();
+        var emailNormalizado = _userManagerNative.NormalizeEmail(email);
+        var usuarioIdentity = await _userManagerNative.Users
+            .FirstOrDefaultAsync(u =>
+                u.NormalizedEmail == emailNormalizado &&
+                u.TenantId == tenantIdNormalizado);
     
         if (usuarioIdentity == null)
             return (false, null, "Credenciais inválidas.");

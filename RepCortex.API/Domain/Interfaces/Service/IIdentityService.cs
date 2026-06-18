@@ -18,5 +18,5 @@ public interface IIdentityService
     /// Faz login com email e senha. Retorna (Sucesso, Token, Erro).
     /// Se sucesso=true, Token contém JWT válido. Senão, erro descreve o problema.
     /// </summary>
-    Task<(bool Sucesso, string? Token, string? Erro)> LoginAsync(string email, string senha);
+    Task<(bool Sucesso, string? Token, string? Erro)> LoginAsync(string tenantId, string email, string senha);
 }

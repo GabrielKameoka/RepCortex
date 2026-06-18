@@ -6,7 +6,7 @@ namespace RepCortex.Domain.Interfaces.Service;
 /// </summary>
 public interface ITenantService
 {
-    /// <summary>Define qual tenant está fazendo a requisição (chamado pelo TenantMiddleware).</summary>
+    /// <summary>Define qual tenant está fazendo a requisição com base na credencial autenticada.</summary>
     void DefinirTenantId(string tenantId);
 
     /// <summary>Obtém o ID do tenant logado. Lança UnauthorizedAccessException se não definido.</summary>

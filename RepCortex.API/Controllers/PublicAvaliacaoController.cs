@@ -1,16 +1,19 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RepCortex.Application.DTOs;
 using RepCortex.Application.Services;
+using RepCortex.Infrastructure.Security;
 
 namespace RepCortex.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
-public class AvaliacaoController : ControllerBase
+[Route("api/public/avaliacoes")]
+[Authorize(Policy = AuthPolicies.PublicIngestOnly)]
+public class PublicAvaliacaoController : ControllerBase
 {
     private readonly AvaliacaoService _avaliacaoService;
 
-    public AvaliacaoController(AvaliacaoService avaliacaoService)
+    public PublicAvaliacaoController(AvaliacaoService avaliacaoService)
     {
         _avaliacaoService = avaliacaoService;
     }
@@ -19,8 +22,9 @@ public class AvaliacaoController : ControllerBase
     public async Task<IActionResult> Criar([FromBody] CriarAvaliacaoRequest request)
     {
         var avaliacao = await _avaliacaoService.CriarAsync(request);
-        
-        return StatusCode(201, new {
+
+        return StatusCode(201, new
+        {
             avaliacao.Id,
             avaliacao.ProdutoId,
             avaliacao.Nota,
@@ -29,23 +33,5 @@ public class AvaliacaoController : ControllerBase
             avaliacao.Sentimento,
             avaliacao.DataCriacao
         });
-    }
-    
-    [HttpGet]
-    public async Task<IActionResult> ObterTodos()
-    {
-        var avaliacoes = await _avaliacaoService.ObterTodasAsync();
-        
-        var resposta = avaliacoes.Select(a => new {
-            a.Id,
-            a.ProdutoId,
-            a.Nota,
-            a.Comentario,
-            Status = a.Status.ToString(),
-            a.Sentimento,
-            a.DataCriacao
-        });
-
-        return Ok(resposta);
     }
 }

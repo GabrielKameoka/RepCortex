@@ -26,7 +26,7 @@ public class RegistrarTenantUseCase
         var jaExiste = await _tenantRepository.ExisteSlugAsync(slugProcessado);
         if (jaExiste)
         {
-            return new RegistrarTenantResponse(false, "Este identificador de espaço (Slug) já está em uso.", null, null, null);
+            return new RegistrarTenantResponse(false, "Este identificador de espaço (Slug) já está em uso.", null, null, null, null);
         }
 
         // 3. Cria a entidade de domínio do Tenant (Permite localhost e * por padrão em dev)
@@ -44,12 +44,19 @@ public class RegistrarTenantUseCase
         
         if (!userSucesso)
         {
-            return new RegistrarTenantResponse(false, userErro, null, null, null);
+            return new RegistrarTenantResponse(false, userErro, null, null, null, null);
         }
 
         // 7. Auto-login: Gera o Token imediatamente após o cadastro para uma UX fluida
-        var (_, token, _) = await _identityService.LoginAsync(request.Email, request.Senha);
+        var (_, token, _) = await _identityService.LoginAsync(novoTenant.Id, request.Email, request.Senha);
 
-        return new RegistrarTenantResponse(true, "Espaço comunitário e administrador registrados com sucesso!", novoTenant.Id, token, novoTenant.ApiKey);
+        return new RegistrarTenantResponse(
+            true,
+            "Espaço comunitário e administrador registrados com sucesso!",
+            novoTenant.Id,
+            token,
+            novoTenant.PublishableKey,
+            novoTenant.SecretKey
+        );
     }
 }

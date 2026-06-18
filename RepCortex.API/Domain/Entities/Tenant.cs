@@ -7,7 +7,8 @@ public class Tenant
 {
     public string Id { get; private set; } // Slug único
     public string NomeComercial { get; private set; }
-    public string ApiKey { get; private set; }
+    public string PublishableKey { get; private set; }
+    public string SecretKey { get; private set; }
     public string DominiosAutorizados { get; private set; }
     public bool Ativo { get; private set; }
     public DateTime DataCriacao { get; private set; } = DateTime.UtcNow;
@@ -23,7 +24,8 @@ public class Tenant
 
         Id = id.ToLower().Trim().Replace(" ", "-"); 
         NomeComercial = nomeComercial;
-        ApiKey = "rc_pub_" + Guid.NewGuid().ToString("N");
+        PublishableKey = "rc_pub_" + Guid.NewGuid().ToString("N");
+        SecretKey = "rc_sec_" + Guid.NewGuid().ToString("N");
         DominiosAutorizados = dominiosAutorizados ?? "localhost";
         Ativo = true; 
     }
