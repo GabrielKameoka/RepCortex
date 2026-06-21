@@ -23,14 +23,14 @@ public class AvaliacaoTests
 
         // Act
         var avaliacao = new Avaliacao(
-            tenantId, 
-            clienteId, 
-            usuarioIdExterno, 
-            produtoId, 
-            nota, 
-            comentario, 
-            ipOrigem, 
-            fingerprint, 
+            tenantId,
+            clienteId,
+            usuarioIdExterno,
+            produtoId,
+            nota,
+            comentario,
+            ipOrigem,
+            fingerprint,
             sentimento
         );
 
@@ -48,7 +48,7 @@ public class AvaliacaoTests
 
         // Act
         var avaliacao = new Avaliacao(
-            "tenant-01", "cli-1", "usr-1", "prod-1", 
+            "tenant-01", "cli-1", "usr-1", "prod-1",
             nota, comentario, "127.0.0.1", "fingerprint", sentimento
         );
 
@@ -63,7 +63,7 @@ public class AvaliacaoTests
     {
         // Act
         var avaliacao = new Avaliacao(
-            "tenant-01", "cli-1", "usr-1", "prod-1", 
+            "tenant-01", "cli-1", "usr-1", "prod-1",
             notaBaixa, "Texto qualquer", "127.0.0.1", "fingerprint", SentimentoAvaliacao.Neutro
         );
 
@@ -79,7 +79,7 @@ public class AvaliacaoTests
 
         // Act & Assert
         Action acao = () => new Avaliacao(
-            "tenant-01", "cli-1", "usr-1", "prod-1", 
+            "tenant-01", "cli-1", "usr-1", "prod-1",
             notaInvalida, "Comentário", "127.0.0.1", "fingerprint", SentimentoAvaliacao.Positivo
         );
 

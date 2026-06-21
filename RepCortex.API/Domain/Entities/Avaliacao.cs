@@ -49,7 +49,7 @@ public class Avaliacao : ITenantEntity
 
         Status = DefinirStatusInicial(nota, sentimento);
     }
-    
+
     /// <summary>
     /// Regras de moderação automática: Nota 5 + Positivo aprova direto; demais casos retêm para revisão.
     /// </summary>
@@ -57,7 +57,7 @@ public class Avaliacao : ITenantEntity
     {
         if (nota == 5 && sentimento == SentimentoAvaliacao.Positivo)
             return StatusAvaliacao.Aprovada;
-        
+
         if (nota >= 4 && sentimento == SentimentoAvaliacao.Negativo)
             return StatusAvaliacao.Pendente;
 

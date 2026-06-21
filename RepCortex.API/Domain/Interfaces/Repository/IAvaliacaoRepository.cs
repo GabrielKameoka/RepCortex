@@ -11,7 +11,7 @@ public interface IAvaliacaoRepository
     Task<IEnumerable<Avaliacao>> ObterTodosAsync(string tenantId);
     Task<Avaliacao?> ObterPorIdAsync(Guid id);
     Task AtualizarAsync(Avaliacao avaliacao);
-    
+
     /// <summary>Verifica se um dispositivo já avaliou este produto (anti-fraude).</summary>
     Task<bool> JaAvaliouProdutoAsync(string produtoId, string fingerprint, string tenantId);
 }

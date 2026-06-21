@@ -12,7 +12,7 @@ public class TenantService : ITenantService
         {
             // Retorna vazio em vez de estourar erro se nenhum tenant foi definido ainda.
             // Isso permite o Onboarding rodar livremente!
-            return string.Empty; 
+            return string.Empty;
         }
 
         return _tenantId;
