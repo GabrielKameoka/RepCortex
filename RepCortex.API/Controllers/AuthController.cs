@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RepCortex.Application.DTOs.Auth;
 using RepCortex.Application.UseCases.Auth;
@@ -8,6 +9,7 @@ namespace RepCortex.API.Controllers;
 
 [ApiController]
 [Route("api/auth")]
+[AllowAnonymous]
 public class AuthController : ControllerBase
 {
     private readonly RegistrarTenantUseCase _registrarTenantUseCase;
@@ -33,7 +35,7 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var (sucesso, token, erro) = await _identityService.LoginAsync(request.Email, request.Senha);
+        var (sucesso, token, erro) = await _identityService.LoginAsync(request.TenantId, request.Email, request.Senha);
 
         if (!sucesso)
             return Unauthorized(new { mensagem = erro });
@@ -41,6 +43,3 @@ public class AuthController : ControllerBase
         return Ok(new { token });
     }
 }
-
-// DTO simples para o corpo do Login
-public record LoginRequest(string Email, string Senha);

@@ -21,6 +21,8 @@ public class TokenService : ITokenService
     public string GerarToken(Usuario usuario)
     {
         var chaveDiretriz = _configuration["Jwt:Secret"];
+        var issuer = _configuration["Jwt:Issuer"];
+        var audience = _configuration["Jwt:Audience"];
         
         // Proteção: Se a chave estiver vazia ou com o texto padrão do Git, impede a execução falhando rápido
         if (string.IsNullOrWhiteSpace(chaveDiretriz) || chaveDiretriz.Contains("SUA_CHAVE_JWT"))
@@ -30,8 +32,22 @@ public class TokenService : ITokenService
                 "Certifique-se de configurar a variável de ambiente 'Jwt__Secret' antes de inicializar a API.");
         }
 
+        if (string.IsNullOrWhiteSpace(issuer) || issuer.Contains("SUA_ISSUER_JWT"))
+        {
+            throw new InvalidOperationException(
+                "🚨 CRITICAL ARCHITECTURE ERROR: O emissor do JWT não foi configurado. " +
+                "Certifique-se de configurar a variável de ambiente 'Jwt__Issuer' antes de inicializar a API.");
+        }
+
+        if (string.IsNullOrWhiteSpace(audience) || audience.Contains("SUA_AUDIENCE_JWT"))
+        {
+            throw new InvalidOperationException(
+                "🚨 CRITICAL ARCHITECTURE ERROR: A audience do JWT não foi configurada. " +
+                "Certifique-se de configurar a variável de ambiente 'Jwt__Audience' antes de inicializar a API.");
+        }
+
         var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.ASCII.GetBytes(chaveDiretriz);
+        var key = Encoding.UTF8.GetBytes(chaveDiretriz);
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {
@@ -40,8 +56,11 @@ public class TokenService : ITokenService
                 new Claim(ClaimTypes.NameIdentifier, usuario.Id),
                 new Claim(ClaimTypes.Email, usuario.Email),
                 new Claim(ClaimTypes.Name, usuario.NomeCompleto),
-                new Claim("TenantId", usuario.TenantId) // Injetando o isolamento do tenant dentro do token assinado
+                new Claim(AuthClaimTypes.TenantId, usuario.TenantId),
+                new Claim(AuthClaimTypes.AccessType, AuthAccessTypes.Admin)
             }),
+            Issuer = issuer,
+            Audience = audience,
             Expires = DateTime.UtcNow.AddHours(8),
             SigningCredentials = new SigningCredentials(
                 new SymmetricSecurityKey(key), 

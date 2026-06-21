@@ -12,9 +12,11 @@ public class TenantMapping : IEntityTypeConfiguration<Tenant>
         builder.HasKey(t => t.Id);
         builder.Property(t => t.Id).HasMaxLength(50);
         builder.Property(t => t.NomeComercial).IsRequired().HasMaxLength(150);
-        builder.Property(t => t.ApiKey).IsRequired().HasMaxLength(100);
+        builder.Property(t => t.PublishableKey).IsRequired().HasMaxLength(100);
+        builder.Property(t => t.SecretKey).IsRequired().HasMaxLength(100);
         builder.Property(t => t.DominiosAutorizados).IsRequired().HasMaxLength(500);
 
-        builder.HasIndex(t => t.ApiKey).IsUnique();
+        builder.HasIndex(t => t.PublishableKey).IsUnique();
+        builder.HasIndex(t => t.SecretKey).IsUnique();
     }
 }

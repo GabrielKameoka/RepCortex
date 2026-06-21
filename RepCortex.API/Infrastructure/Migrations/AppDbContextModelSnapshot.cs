@@ -223,11 +223,6 @@ namespace RepCortex.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<string>("ApiKey")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
                     b.Property<bool>("Ativo")
                         .HasColumnType("boolean");
 
@@ -244,9 +239,22 @@ namespace RepCortex.Infrastructure.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<string>("PublishableKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SecretKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ApiKey")
+                    b.HasIndex("PublishableKey")
+                        .IsUnique();
+
+                    b.HasIndex("SecretKey")
                         .IsUnique();
 
                     b.ToTable("Tenants", (string)null);
