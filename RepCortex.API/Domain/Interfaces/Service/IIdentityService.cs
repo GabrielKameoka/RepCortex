@@ -13,7 +13,7 @@ public interface IIdentityService
     /// Se sucesso=true, usuarioId contém o ID gerado. Senão, erro descreve o problema.
     /// </summary>
     Task<(bool Sucesso, string? Erro, string? UsuarioId)> RegistrarUsuarioAsync(Usuario usuario, string senha);
-    
+
     /// <summary>
     /// Faz login com email e senha. Retorna (Sucesso, Token, Erro).
     /// Se sucesso=true, Token contém JWT válido. Senão, erro descreve o problema.

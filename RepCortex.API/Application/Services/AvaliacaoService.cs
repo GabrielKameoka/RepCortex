@@ -28,25 +28,25 @@ public class AvaliacaoService
     public async Task<Avaliacao> CriarAsync(CriarAvaliacaoRequest request)
     {
         var tenantId = _tenantService.ObterTenantId();
-        
+
         var jaAvaliou = await _repository.JaAvaliouProdutoAsync(
             request.ProdutoId,
             request.Fingerprint,
-            tenantId 
+            tenantId
         );
 
         if (jaAvaliou)
         {
             throw new InvalidOperationException("Este dispositivo já enviou uma avaliação para este produto.");
         }
-        
+
         var sentimentoTexto = await _sentimentService.AnalisarSentimentoAsync(request.Comentario);
-        
+
         if (!Enum.TryParse<SentimentoAvaliacao>(sentimentoTexto, true, out var sentimentoEnum))
             sentimentoEnum = SentimentoAvaliacao.NaoAnalisado;
-        
+
         var novaAvaliacao = new Avaliacao(
-            tenantId, 
+            tenantId,
             request.ClienteId,
             request.UsuarioIdExterno,
             request.ProdutoId,

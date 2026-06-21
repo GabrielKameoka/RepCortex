@@ -25,7 +25,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Registrar([FromBody] RegistrarTenantRequest request)
     {
         var resultado = await _registrarTenantUseCase.ExecutarAsync(request);
-        
+
         if (!resultado.Sucesso)
             return BadRequest(new { mensagem = resultado.Mensagem });
 

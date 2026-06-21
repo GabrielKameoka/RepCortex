@@ -13,7 +13,7 @@ public class UsuarioIdentityMapping : IEntityTypeConfiguration<UsuarioIdentity>
 
         // Remove o índice padrão de e-mail único global
         builder.DropUniqueEmailIndex();
-        
+
         // Cria o índice composto: E-mail único apenas DENTRO do mesmo Tenant
         builder.HasIndex(u => new { u.NormalizedEmail, u.TenantId }).IsUnique();
     }

@@ -51,6 +51,14 @@ builder.Services.AddIdentityCore<UsuarioIdentity>(options =>
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
+// --- Cache Distribuído (Redis) ---
+var redisConnectionString = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = redisConnectionString;
+    options.InstanceName = "RepCortex:";
+});
+
 // --- Repositórios ---
 builder.Services.AddScoped<IAvaliacaoRepository, AvaliacaoRepository>();
 builder.Services.AddScoped<ITenantRepository, TenantRepository>();
@@ -61,7 +69,7 @@ builder.Services.AddScoped<IIdentityService, IdentityService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 
 // --- Serviços de Contexto Híbrido ---
-builder.Services.AddScoped<ITenantService, TenantService>(); 
+builder.Services.AddScoped<ITenantService, TenantService>();
 
 // --- Serviços de Aplicação ---
 builder.Services.AddScoped<RepCortex.Application.Services.AvaliacaoService>();
@@ -122,6 +130,50 @@ builder.Services.AddAuthorization(options =>
     });
 });
 
+// --- Rate Limiting ---
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.ContentType = "application/json";
+        var respostaErro = new
+        {
+            mensagem = "Muitas requisições enviadas. Limite de taxa excedido para o seu Tenant/IP. Tente novamente em breve."
+        };
+        await context.HttpContext.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(respostaErro), token);
+    };
+
+    options.AddPolicy("PublicWidgetPolicy", httpContext =>
+    {
+        var tenantId = httpContext.User.FindFirstValue(AuthClaimTypes.TenantId);
+
+        if (string.IsNullOrEmpty(tenantId))
+        {
+            var apiKeyHeader = httpContext.Request.Headers["X-Api-Key"].ToString();
+            if (!string.IsNullOrEmpty(apiKeyHeader))
+            {
+                tenantId = apiKeyHeader;
+            }
+        }
+
+        tenantId ??= "anonymous";
+        var ipOrigem = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown-ip";
+        var partitionKey = $"rate_limit_tenant:{tenantId}:ip:{ipOrigem}";
+
+        return System.Threading.RateLimiting.RateLimitPartition.GetSlidingWindowLimiter(
+            partitionKey: partitionKey,
+            factory: _ => new System.Threading.RateLimiting.SlidingWindowRateLimiterOptions
+            {
+                PermitLimit = 60,
+                Window = TimeSpan.FromMinutes(1),
+                SegmentsPerWindow = 3,
+                QueueLimit = 0
+            });
+    });
+});
+
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
@@ -133,8 +185,8 @@ app.UseRouting();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi(); 
-    app.MapScalarApiReference(options => 
+    app.MapOpenApi();
+    app.MapScalarApiReference(options =>
     {
         options.Title = "RepCortex API";
         options.Theme = ScalarTheme.Purple;
@@ -144,6 +196,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseAuthentication(); // 1. Decodifica o JWT ou valida a API Key e monta o context.User
 app.UseMiddleware<RepCortex.Infrastructure.Middlewares.TenantMiddleware>(); // 2. Captura as Claims do User e define o TenantId global
+app.UseRateLimiter();    // 2.5 Limitador de taxa baseado no Tenant autenticado
 app.UseAuthorization();  // 3. Valida se a política (Admin, Public, Secret) bate com o endpoint
 app.MapControllers();
 

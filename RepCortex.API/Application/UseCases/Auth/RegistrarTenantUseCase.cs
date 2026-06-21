@@ -21,7 +21,7 @@ public class RegistrarTenantUseCase
     {
         // 1. Processa e higieniza o Slug do Tenant
         var slugProcessado = request.TenantIdSlug.ToLower().Trim().Replace(" ", "-");
-        
+
         // 2. Valida unicidade do inquilino
         var jaExiste = await _tenantRepository.ExisteSlugAsync(slugProcessado);
         if (jaExiste)
@@ -41,7 +41,7 @@ public class RegistrarTenantUseCase
 
         // 6. Delega a criação física e hash de senha para o IdentityService
         var (userSucesso, userErro, _) = await _identityService.RegistrarUsuarioAsync(novoUsuario, request.Senha);
-        
+
         if (!userSucesso)
         {
             return new RegistrarTenantResponse(false, userErro, null, null, null, null);

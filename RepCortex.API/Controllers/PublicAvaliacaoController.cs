@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using RepCortex.Application.DTOs;
 using RepCortex.Application.Services;
 using RepCortex.Infrastructure.Security;
@@ -9,6 +10,7 @@ namespace RepCortex.API.Controllers;
 [ApiController]
 [Route("api/public/avaliacoes")]
 [Authorize(Policy = AuthPolicies.PublicIngestOnly)]
+[EnableRateLimiting("PublicWidgetPolicy")]
 public class PublicAvaliacaoController : ControllerBase
 {
     private readonly AvaliacaoService _avaliacaoService;

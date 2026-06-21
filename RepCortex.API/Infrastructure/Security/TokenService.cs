@@ -23,7 +23,7 @@ public class TokenService : ITokenService
         var chaveDiretriz = _configuration["Jwt:Secret"];
         var issuer = _configuration["Jwt:Issuer"];
         var audience = _configuration["Jwt:Audience"];
-        
+
         // Proteção: Se a chave estiver vazia ou com o texto padrão do Git, impede a execução falhando rápido
         if (string.IsNullOrWhiteSpace(chaveDiretriz) || chaveDiretriz.Contains("SUA_CHAVE_JWT"))
         {
@@ -63,7 +63,7 @@ public class TokenService : ITokenService
             Audience = audience,
             Expires = DateTime.UtcNow.AddHours(8),
             SigningCredentials = new SigningCredentials(
-                new SymmetricSecurityKey(key), 
+                new SymmetricSecurityKey(key),
                 SecurityAlgorithms.HmacSha256Signature
             )
         };

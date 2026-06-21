@@ -27,7 +27,7 @@ public class IdentityService : IIdentityService
             Id = usuario.Id,
             NomeCompleto = usuario.NomeCompleto,
             Email = usuario.Email,
-            UserName = usuario.Email, 
+            UserName = usuario.Email,
             TenantId = usuario.TenantId,
             DataCadastro = usuario.DataCadastro
         };
@@ -51,7 +51,7 @@ public class IdentityService : IIdentityService
             .FirstOrDefaultAsync(u =>
                 u.NormalizedEmail == emailNormalizado &&
                 u.TenantId == tenantIdNormalizado);
-    
+
         if (usuarioIdentity == null)
             return (false, null, "Credenciais inválidas.");
 
@@ -61,9 +61,9 @@ public class IdentityService : IIdentityService
 
         // CONVERSÃO: Transformamos o modelo do banco no modelo rico do Domínio
         var usuarioDominio = new Usuario(
-            usuarioIdentity.Id, 
-            usuarioIdentity.NomeCompleto, 
-            usuarioIdentity.Email!, 
+            usuarioIdentity.Id,
+            usuarioIdentity.NomeCompleto,
+            usuarioIdentity.Email!,
             usuarioIdentity.TenantId
         );
 

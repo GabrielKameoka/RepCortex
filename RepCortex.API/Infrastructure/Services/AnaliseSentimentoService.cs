@@ -27,7 +27,7 @@ public class AnaliseSentimentoService : IAnaliseSentimentoService
     public AnaliseSentimentoService()
     {
         _mlContext = new MLContext();
-        _modelo = TreinarModelo(); 
+        _modelo = TreinarModelo();
     }
 
     private ITransformer TreinarModelo()

@@ -28,7 +28,7 @@ public class AvaliacaoRepository : IAvaliacaoRepository
             .AsNoTracking() // melhor a performance
             .ToListAsync();
     }
-    
+
     public async Task<Avaliacao?> ObterPorIdAsync(Guid id)
     {
         return await _context.Avaliacoes.FindAsync(id);
@@ -39,12 +39,12 @@ public class AvaliacaoRepository : IAvaliacaoRepository
         _context.Avaliacoes.Update(avaliacao);
         await _context.SaveChangesAsync();
     }
-    
+
     public async Task<bool> JaAvaliouProdutoAsync(string produtoId, string fingerprint, string tenantId)
     {
         return await _context.Avaliacoes
-            .AnyAsync(a => a.ProdutoId == produtoId && 
-                           a.Fingerprint == fingerprint && 
+            .AnyAsync(a => a.ProdutoId == produtoId &&
+                           a.Fingerprint == fingerprint &&
                            a.TenantId == tenantId);
     }
 }
