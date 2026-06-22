@@ -1,0 +1,17 @@
+[phases.setup]
+nixPkgs = ["...", "dotnet-sdk_8"] # Fallback base seguro para o Nixpacks
+
+[phases.install]
+cmds = [
+    "wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh",
+    "chmod +x dotnet-install.sh",
+    "./dotnet-install.sh --version 10.0.100-preview.1.25120.4 --install-dir /usr/share/dotnet",
+    "export PATH=$PATH:/usr/share/dotnet",
+    "dotnet restore"
+]
+
+[phases.build]
+cmds = ["dotnet publish RepCortex.API/RepCortex.API.csproj -c Release -o out"]
+
+[start]
+cmd = "dotnet out/RepCortex.API.dll"
