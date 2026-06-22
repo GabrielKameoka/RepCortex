@@ -8,7 +8,6 @@
 .env
 appsettings.Development.json
 appsettings.Local.json
-appsettings.json
 
 # Logs e arquivos temporários
 *.log
