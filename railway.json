@@ -8,5 +8,8 @@
     "startCommand": "dotnet out/RepCortex.API.dll",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
+  },
+  "variables": {
+    "NIXPACKS_DOTNET_VERSION": "10.0"
   }
 }
