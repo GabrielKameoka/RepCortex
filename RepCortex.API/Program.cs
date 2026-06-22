@@ -179,6 +179,8 @@ builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
 
+var app = builder.Build();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -189,10 +191,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-// E logo abaixo antes dos endpoints:
 app.UseCors("AllowAll");
-
-var app = builder.Build();
 
 app.UseRouting();
 
