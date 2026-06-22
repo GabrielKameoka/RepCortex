@@ -179,20 +179,30 @@ builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader();
+    });
+});
+
+// E logo abaixo antes dos endpoints:
+app.UseCors("AllowAll");
+
 var app = builder.Build();
 
 app.UseRouting();
 
-if (app.Environment.IsDevelopment())
+app.MapOpenApi();
+app.MapScalarApiReference(options =>
 {
-    app.MapOpenApi();
-    app.MapScalarApiReference(options =>
-    {
-        options.Title = "RepCortex API";
-        options.Theme = ScalarTheme.Purple;
-        options.OpenApiRoutePattern = "/openapi/v1.json";
-    });
-}
+    options.Title = "RepCortex API";
+    options.Theme = ScalarTheme.Purple;
+    options.OpenApiRoutePattern = "/openapi/v1.json";
+});
 
 app.UseAuthentication(); // 1. Decodifica o JWT ou valida a API Key e monta o context.User
 app.UseMiddleware<RepCortex.Infrastructure.Middlewares.TenantMiddleware>(); // 2. Captura as Claims do User e define o TenantId global
