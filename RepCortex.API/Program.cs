@@ -13,7 +13,6 @@ using RepCortex.Domain.Interfaces.Repository;
 using RepCortex.Infrastructure.Identity;
 using RepCortex.Infrastructure.Security;
 using Scalar.AspNetCore;
-DotNetEnv.Env.Load(); // Carrega o arquivo .env para o ambiente antes de subir a API
 
 var builder = WebApplication.CreateBuilder(args);
 
