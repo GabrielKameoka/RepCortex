@@ -190,10 +190,10 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
 app.UseCors("AllowAll");
 app.UseRouting();
 
-// Mapeamentos de rota e documentação no topo
 app.MapOpenApi();
 app.MapScalarApiReference(options =>
 {
@@ -202,14 +202,13 @@ app.MapScalarApiReference(options =>
     options.OpenApiRoutePattern = "/openapi/v1.json";
 });
 
-// Garante que o .NET conheça os Controllers e suas rotas antes de tudo
-app.MapControllers();
-
-// Pipeline de Segurança e Contexto
 app.UseAuthentication(); 
+
 app.UseMiddleware<RepCortex.Infrastructure.Middlewares.TenantMiddleware>(); 
 app.UseRateLimiter();    
 app.UseAuthorization();  
+
+app.MapControllers();
 
 using (var scope = app.Services.CreateScope())
 {
