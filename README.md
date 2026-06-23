@@ -67,8 +67,8 @@ dotnet run --project RepCortex.API/RepCortex.API.csproj
 ```
 
 A API estará disponível em:
-* **HTTP:** `http://localhost:5154`
-* **Painel Interativo Scalar:** `http://localhost:5154/scalar/v1`
+* **HTTP:** `https://repcortex-production.up.railway.app`
+* **Painel Interativo Scalar:** https://repcortex-production.up.railway.app/scalar/v1
 
 ---
 
