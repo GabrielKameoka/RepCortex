@@ -21,17 +21,15 @@ var jwtSecret = builder.Configuration["Jwt:Secret"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
 
-// Validação limpa: Só barra se você esquecer de passar o valor
+// Validação limpa
 if (string.IsNullOrWhiteSpace(jwtSecret))
 {
     throw new InvalidOperationException("Configure a variável de ambiente 'Jwt__Secret' antes de inicializar a API.");
 }
-
 if (string.IsNullOrWhiteSpace(jwtIssuer))
 {
     throw new InvalidOperationException("Configure a variável de ambiente 'Jwt__Issuer' antes de inicializar a API.");
 }
-
 if (string.IsNullOrWhiteSpace(jwtAudience))
 {
     throw new InvalidOperationException("Configure a variável de ambiente 'Jwt__Audience' antes de inicializar a API.");
@@ -39,14 +37,13 @@ if (string.IsNullOrWhiteSpace(jwtAudience))
 
 builder.Services.AddIdentityCore<UsuarioIdentity>(options =>
     {
-        // Aqui você pode customizar regras de senha se quiser (exemplo):
         options.Password.RequireDigit = false;
         options.Password.RequireLowercase = false;
         options.Password.RequireNonAlphanumeric = false;
         options.Password.RequireUppercase = false;
         options.Password.RequiredLength = 6;
     })
-    .AddEntityFrameworkStores<AppDbContext>(); // Diz para o Identity salvar os dados no seu contexto do EF Core
+    .AddEntityFrameworkStores<AppDbContext>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -64,7 +61,7 @@ builder.Services.AddScoped<IAvaliacaoRepository, AvaliacaoRepository>();
 builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 
 // --- Serviços de Infraestrutura ---
-builder.Services.AddSingleton<IAnaliseSentimentoService, AnaliseSentimentoService>(); // Mantido Singleton para carregar o modelo ML.NET uma única vez na memória
+builder.Services.AddSingleton<IAnaliseSentimentoService, AnaliseSentimentoService>(); 
 builder.Services.AddScoped<IIdentityService, IdentityService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 
@@ -175,9 +172,19 @@ builder.Services.AddRateLimiter(options =>
 });
 
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
+
+// Configuração correta do OpenAPI nativo do .NET 9 usando caminhos dinâmicos recomendados
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, context, cancellationToken) =>
+    {
+        // Adiciona o servidor sem depender de pacotes de terceiros legados
+        document.Servers = [new() { Url = "https://repcortex-production.up.railway.app" }];
+        return Task.CompletedTask;
+    });
+});
 
 builder.Services.AddCors(options =>
 {
@@ -199,12 +206,10 @@ app.MapScalarApiReference(options =>
 {
     options.Title = "RepCortex API";
     options.Theme = ScalarTheme.Purple;
-    // Força o Scalar a buscar o JSON usando o endereço público HTTPS absoluto
     options.OpenApiRoutePattern = "https://repcortex-production.up.railway.app/openapi/v1.json";
 });
 
 app.UseAuthentication(); 
-
 app.UseMiddleware<RepCortex.Infrastructure.Middlewares.TenantMiddleware>(); 
 app.UseRateLimiter();    
 app.UseAuthorization();  
