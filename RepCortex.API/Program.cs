@@ -199,7 +199,8 @@ app.MapScalarApiReference(options =>
 {
     options.Title = "RepCortex API";
     options.Theme = ScalarTheme.Purple;
-    options.OpenApiRoutePattern = "/openapi/v1.json";
+    // Força o Scalar a buscar o JSON usando o endereço público HTTPS absoluto
+    options.OpenApiRoutePattern = "https://repcortex-production.up.railway.app/openapi/v1.json";
 });
 
 app.UseAuthentication(); 
