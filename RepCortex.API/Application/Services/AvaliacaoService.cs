@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using RepCortex.Application.DTOs;
 using RepCortex.Domain.Entities;
 using RepCortex.Domain.Entities.Enums;
@@ -14,39 +15,50 @@ public class AvaliacaoService
     private readonly IAvaliacaoRepository _repository;
     private readonly IAnaliseSentimentoService _sentimentService;
     private readonly ITenantService _tenantService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public AvaliacaoService(
         IAvaliacaoRepository repository,
         IAnaliseSentimentoService sentimentService,
-        ITenantService tenantService)
+        ITenantService tenantService,
+        IHttpContextAccessor httpContextAccessor)
     {
         _repository = repository;
         _sentimentService = sentimentService;
         _tenantService = tenantService;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<Avaliacao> CriarAsync(CriarAvaliacaoRequest request)
     {
+        // Tenta obter o TenantId que o TenantService configurou
         var tenantId = _tenantService.ObterTenantId();
 
-        var jaAvaliou = await _repository.JaAvaliouProdutoAsync(
-            request.ProdutoId,
-            request.Fingerprint,
-            tenantId
-        );
-
-        if (jaAvaliou)
+        // Se o serviço falhar ou estiver vazio no escopo, capture direto das Claims
+        if (string.IsNullOrEmpty(tenantId))
         {
-            throw new InvalidOperationException("Este dispositivo já enviou uma avaliação para este produto.");
+            tenantId = _httpContextAccessor.HttpContext?.User?.FindFirstValue("tenant_id") 
+                       ?? _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
         }
 
-        var sentimentoTexto = await _sentimentService.AnalisarSentimentoAsync(request.Comentario);
+        if (string.IsNullOrEmpty(tenantId))
+        {
+            throw new Exception("Não foi possível identificar o Tenant associado a esta requisição.");
+        }
 
-        if (!Enum.TryParse<SentimentoAvaliacao>(sentimentoTexto, true, out var sentimentoEnum))
-            sentimentoEnum = SentimentoAvaliacao.NaoAnalisado;
+        // 1. Executa a análise de sentimento da IA (Retorna string)
+        string sentimentoString = await _sentimentService.AnalisarSentimentoAsync(request.Comentario);
 
-        var novaAvaliacao = new Avaliacao(
-            tenantId,
+        // 2. Converte a string da IA para o tipo exato do seu Enum (Ignorando letras maiúsculas/minúsculas)
+        if (!Enum.TryParse<SentimentoAvaliacao>(sentimentoString, true, out var sentimentoEnum))
+        {
+            // Caso a IA devolva algo inesperado, define um valor padrão seguro
+            sentimentoEnum = SentimentoAvaliacao.Neutro; 
+        }
+
+        // 3. Instancia a entidade passando o Enum convertido perfeitamente
+        var avaliacao = new Avaliacao(
+            tenantId, 
             request.ClienteId,
             request.UsuarioIdExterno,
             request.ProdutoId,
@@ -54,11 +66,11 @@ public class AvaliacaoService
             request.Comentario,
             request.IpOrigem,
             request.Fingerprint,
-            sentimentoEnum
+            sentimentoEnum // <-- Agora o tipo bate 100%!
         );
 
-        await _repository.AdicionarAsync(novaAvaliacao);
-        return novaAvaliacao;
+        await _repository.AdicionarAsync(avaliacao);
+        return avaliacao;
     }
 
     public async Task<IEnumerable<Avaliacao>> ObterTodasAsync()
