@@ -7,7 +7,6 @@ namespace RepCortex.API.Controllers;
 
 [ApiController]
 [Route("api/admin/avaliacoes")]
-[Authorize(Policy = AuthPolicies.AdminOnly)]
 public class AdminAvaliacaoController : ControllerBase
 {
     private readonly AvaliacaoService _avaliacaoService;

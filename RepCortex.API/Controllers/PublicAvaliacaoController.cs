@@ -9,7 +9,6 @@ namespace RepCortex.API.Controllers;
 
 [ApiController]
 [Route("api/public/avaliacoes")]
-[Authorize(Policy = AuthPolicies.PublicIngestOnly)]
 [EnableRateLimiting("PublicWidgetPolicy")]
 public class PublicAvaliacaoController : ControllerBase
 {
