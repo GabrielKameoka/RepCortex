@@ -193,6 +193,7 @@ var app = builder.Build();
 app.UseCors("AllowAll");
 app.UseRouting();
 
+// Mapeamentos de rota e documentação no topo
 app.MapOpenApi();
 app.MapScalarApiReference(options =>
 {
@@ -201,16 +202,19 @@ app.MapScalarApiReference(options =>
     options.OpenApiRoutePattern = "/openapi/v1.json";
 });
 
-app.UseAuthentication(); // 1. Decodifica o JWT ou valida a API Key e monta o context.User
-app.UseMiddleware<RepCortex.Infrastructure.Middlewares.TenantMiddleware>(); // 2. Captura as Claims do User e define o TenantId global
-app.UseRateLimiter();    // 2.5 Limitador de taxa baseado no Tenant autenticado
-app.UseAuthorization();  // 3. Valida se a política (Admin, Public, Secret) bate com o endpoint
+// Garante que o .NET conheça os Controllers e suas rotas antes de tudo
 app.MapControllers();
+
+// Pipeline de Segurança e Contexto
+app.UseAuthentication(); 
+app.UseMiddleware<RepCortex.Infrastructure.Middlewares.TenantMiddleware>(); 
+app.UseRateLimiter();    
+app.UseAuthorization();  
 
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate(); // Aplica as migrations automaticamente se não existirem
+    db.Database.Migrate(); 
 }
 
 app.Run();
