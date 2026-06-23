@@ -9,6 +9,8 @@ namespace RepCortex.API.Controllers;
 
 [ApiController]
 [Route("api/public/avaliacoes")]
+[Authorize(Policy = AuthPolicies.PublicIngestOnly)] // Reativado: Exige X-Api-Key válida
+[EnableRateLimiting("PublicWidgetPolicy")]          // Reativado: Ativa a proteção do Redis contra spam
 public class PublicAvaliacaoController : ControllerBase
 {
     private readonly AvaliacaoService _avaliacaoService;
