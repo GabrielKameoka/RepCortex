@@ -9,7 +9,6 @@ namespace RepCortex.API.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-[AllowAnonymous]
 public class AuthController : ControllerBase
 {
     private readonly RegistrarTenantUseCase _registrarTenantUseCase;
