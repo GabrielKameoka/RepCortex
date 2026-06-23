@@ -1,9 +1,9 @@
-@RepCortex.API_HostAddress = http://localhost:5154
+@RepCortex.API_HostAddress = https://repcortex-production.up.railway.app
 
 # ==============================================================================
 # 1. REGISTRAR NOVO TENANT
-# Cadastra uma loja/e-commerce no ecossistema RepCortex.
-# Copie o 'publishableKey' e 'tokenJWT' da resposta para usar nas requisições seguintes.
+# Cadastra uma nova loja/e-commerce diretamente na API de Produção.
+# Copie o 'publishableKey' e 'tokenJWT' da resposta para usar nos testes seguintes.
 # ==============================================================================
 # @name RegistrarTenant
 POST {{RepCortex.API_HostAddress}}/api/auth/registrar

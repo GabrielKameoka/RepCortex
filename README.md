@@ -6,6 +6,15 @@ O projeto foi construído utilizando **.NET 10**, aplicando práticas rigorosas 
 
 ---
 
+## 🌐 Live Demo & API Docs
+
+O projeto já está **deployado em produção** e você pode interagir diretamente com ele online!
+
+* **Documentação Interativa (Scalar):** [https://repcortex-production.up.railway.app/scalar/v1](https://repcortex-production.up.railway.app/scalar/v1)
+* **Base URL da API:** `https://repcortex-production.up.railway.app`
+
+---
+
 ## 🚀 Diferenciais Técnicos e Arquitetura
 
 ### 1. Multi-Tenancy Robusto (Shared Database, Tenant Isolation)
@@ -44,56 +53,24 @@ A estrutura segue o fluxo clássico de dependência de dentro para fora:
 
 ---
 
-## 🔧 Como Executar Localmente
+## 🧪 Como Testar e Interagir com a API (100% Online)
 
-### Pré-requisitos
-* **Docker** instalado.
-* **.NET 10 SDK** (opcional, apenas se quiser rodar fora do Docker).
+Você não precisa instalar nada ou baixar o projeto localmente para testar os endpoints! Como a aplicação já está **deployada em produção**, você pode testar todo o fluxo de ponta a ponta de duas formas extremamente simples:
 
-### Passo 1: Subir a Infraestrutura (Banco de Dados e Cache)
-Clone o repositório e execute na raiz:
-```bash
-docker-compose up -d
-```
-Isso iniciará um contêiner **PostgreSQL 17** e um contêiner **Redis** prontos para uso.
+### Opção 1: Diretamente pelo Painel Interativo do Scalar (Recomendado)
+Acesse a documentação interativa:
+👉 **[https://repcortex-production.up.railway.app/scalar/v1](https://repcortex-production.up.railway.app/scalar/v1)**
 
-### Passo 2: Configurar o arquivo `.env`
-As variáveis de ambiente para inicialização já vêm preenchidas por padrão no arquivo `.env` do ambiente local. Caso precise customizar as chaves de criptografia e bancos de produção, configure as variáveis de ambiente locais do sistema operacional ou injete na API.
-
-### Passo 3: Executar a API
-Execute a aplicação via terminal:
-```bash
-dotnet run --project RepCortex.API/RepCortex.API.csproj
-```
-
-A API estará disponível em:
-* **HTTP:** `https://repcortex-production.up.railway.app`
-* **Painel Interativo Scalar:** https://repcortex-production.up.railway.app/scalar/v1
+Pelo próprio painel do Scalar, você consegue disparar requisições em tempo real para a nossa API na nuvem:
+1. **Registrar Tenant:** Vá na rota `POST /api/auth/registrar`, digite dados fictícios no JSON e clique em "Send Request".
+2. **Copie as chaves geradas:** A resposta trará o seu token JWT e sua `PublishableKey`.
+3. **Ingestão de Avaliação:** Vá na rota `POST /api/public/avaliacoes`, clique em Headers, configure a chave `X-Api-Key` com o valor da sua `PublishableKey` gerada e envie uma avaliação com nota e comentário (teste o ML.NET escrevendo comentários negativos com nota alta!).
+4. **Consultar como Admin:** Vá em `GET /api/admin/avaliacoes`, configure o header de autorização `Bearer <Seu-JWT-Copiado>` e veja a lista de avaliações processadas com o status atualizado da inteligência artificial local.
 
 ---
 
-## 🧪 Como Testar a API
-
-Utilize o arquivo pré-configurado `RepCortex.API.http` presente no diretório `RepCortex.API` de forma nativa no VS Code ou Rider para realizar requisições automáticas de ponta a ponta. 
-
-### Fluxo de Teste Sugerido:
-
-1. **Registrar um Novo Tenant:**
-   Faça um POST em `/api/auth/registrar` passando o slug desejado. A resposta retornará suas chaves de API exclusivas (`PublishableKey`, `SecretKey`) e um token JWT inicial.
-2. **Ingestão de Avaliação (Pública):**
-   Envie uma avaliação para `/api/public/avaliacoes` usando o cabeçalho `X-Api-Key` configurado com a sua `PublishableKey`. Experimente colocar textos claramente negativos com nota 5 para ver o ML.NET classificar o sentimento e reter a aprovação automática.
-3. **Consulta de Avaliações (Admin):**
-   Utilize o token JWT recebido no login para autenticar e consultar as avaliações recebidas em `/api/admin/avaliacoes`.
-
----
-
-## 🧪 Rodando os Testes Unitários
-
-O projeto possui cobertura de testes focados nas regras de domínio cruciais (como a auto-aprovação de reviews e o tratamento de sentimento). Para rodar os testes, utilize o comando:
-
-```bash
-dotnet test
-```
+### Opção 2: Utilizando ferramentas locais (Postman, Insomnia ou VS Code)
+Se você utiliza a extensão **REST Client** no VS Code ou o **Rider**, utilize o arquivo `RepCortex.API.http` presente na pasta `RepCortex.API`. Ele já está totalmente pré-configurado para apontar e disparar requisições diretamente contra o servidor de produção na nuvem!
 
 ---
 
