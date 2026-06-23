@@ -21,19 +21,20 @@ var jwtSecret = builder.Configuration["Jwt:Secret"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
 
-if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Contains("SUA_CHAVE_JWT"))
+// Validação limpa: Só barra se você esquecer de passar o valor
+if (string.IsNullOrWhiteSpace(jwtSecret))
 {
-    throw new InvalidOperationException("Configure a variável de ambiente 'Jwt__Secret' com uma chave JWT válida antes de inicializar a API.");
+    throw new InvalidOperationException("Configure a variável de ambiente 'Jwt__Secret' antes de inicializar a API.");
 }
 
-if (string.IsNullOrWhiteSpace(jwtIssuer) || jwtIssuer.Contains("SUA_ISSUER_JWT"))
+if (string.IsNullOrWhiteSpace(jwtIssuer))
 {
-    throw new InvalidOperationException("Configure a variável de ambiente 'Jwt__Issuer' com um emissor JWT válido antes de inicializar a API.");
+    throw new InvalidOperationException("Configure a variável de ambiente 'Jwt__Issuer' antes de inicializar a API.");
 }
 
-if (string.IsNullOrWhiteSpace(jwtAudience) || jwtAudience.Contains("SUA_AUDIENCE_JWT"))
+if (string.IsNullOrWhiteSpace(jwtAudience))
 {
-    throw new InvalidOperationException("Configure a variável de ambiente 'Jwt__Audience' com uma audience JWT válida antes de inicializar a API.");
+    throw new InvalidOperationException("Configure a variável de ambiente 'Jwt__Audience' antes de inicializar a API.");
 }
 
 builder.Services.AddIdentityCore<UsuarioIdentity>(options =>
@@ -205,5 +206,11 @@ app.UseMiddleware<RepCortex.Infrastructure.Middlewares.TenantMiddleware>(); // 2
 app.UseRateLimiter();    // 2.5 Limitador de taxa baseado no Tenant autenticado
 app.UseAuthorization();  // 3. Valida se a política (Admin, Public, Secret) bate com o endpoint
 app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate(); // Aplica as migrations automaticamente se não existirem
+}
 
 app.Run();
