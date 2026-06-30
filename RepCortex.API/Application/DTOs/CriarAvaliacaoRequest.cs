@@ -5,6 +5,9 @@ namespace RepCortex.Application.DTOs;
 public class CriarAvaliacaoRequest
 {
     [Required]
+    public string TenantId { get; set; }
+    
+    [Required]
     public string ClienteId { get; set; } = string.Empty;
 
     [Required]

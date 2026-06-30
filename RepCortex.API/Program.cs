@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using RepCortex.API.Hubs;
 using RepCortex.Application.UseCases;
 using RepCortex.Domain.Interfaces.Service;
 using RepCortex.Infrastructure.Data;
@@ -14,6 +15,9 @@ using RepCortex.Infrastructure.Identity;
 using RepCortex.Infrastructure.Security;
 using Scalar.AspNetCore;
 
+DotNetEnv.Env.Load(); // Carrega o arquivo .env para o ambiente antes de subir a API
+
+
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -24,15 +28,18 @@ var jwtAudience = builder.Configuration["Jwt:Audience"];
 // Validação limpa
 if (string.IsNullOrWhiteSpace(jwtSecret))
 {
-    throw new InvalidOperationException("Configure a variável de ambiente 'Jwt__Secret' antes de inicializar a API.");
+    throw new InvalidOperationException(
+        "Configure a variável de ambiente 'Jwt__Secret' com uma chave JWT válida antes de inicializar a API.");
 }
 if (string.IsNullOrWhiteSpace(jwtIssuer))
 {
-    throw new InvalidOperationException("Configure a variável de ambiente 'Jwt__Issuer' antes de inicializar a API.");
+    throw new InvalidOperationException(
+        "Configure a variável de ambiente 'Jwt__Issuer' com um emissor JWT válido antes de inicializar a API.");
 }
 if (string.IsNullOrWhiteSpace(jwtAudience))
 {
-    throw new InvalidOperationException("Configure a variável de ambiente 'Jwt__Audience' antes de inicializar a API.");
+    throw new InvalidOperationException(
+        "Configure a variável de ambiente 'Jwt__Audience' com uma audience JWT válida antes de inicializar a API.");
 }
 
 builder.Services.AddIdentityCore<UsuarioIdentity>(options =>
@@ -61,7 +68,9 @@ builder.Services.AddScoped<IAvaliacaoRepository, AvaliacaoRepository>();
 builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 
 // --- Serviços de Infraestrutura ---
-builder.Services.AddSingleton<IAnaliseSentimentoService, AnaliseSentimentoService>(); 
+builder.Services
+    .AddSingleton<IAnaliseSentimentoService,
+        AnaliseSentimentoService>(); // Mantido Singleton para carregar o modelo ML.NET uma única vez na memória
 builder.Services.AddScoped<IIdentityService, IdentityService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 
@@ -94,6 +103,22 @@ builder.Services
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(2),
             NameClaimType = ClaimTypes.Name
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+
+                // Verifica se a requisição está indo em direção ao seu Hub mapeado
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/dashboard"))
+                {
+                    // Injeta o token recuperado da URL diretamente no contexto da requisição
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
         };
     })
     .AddScheme<TenantApiKeyAuthenticationOptions, TenantApiKeyAuthenticationHandler>(
@@ -137,7 +162,8 @@ builder.Services.AddRateLimiter(options =>
         context.HttpContext.Response.ContentType = "application/json";
         var respostaErro = new
         {
-            mensagem = "Muitas requisições enviadas. Limite de taxa excedido para o seu Tenant/IP. Tente novamente em breve."
+            mensagem =
+                "Muitas requisições enviadas. Limite de taxa excedido para o seu Tenant/IP. Tente novamente em breve."
         };
         await context.HttpContext.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(respostaErro), token);
     };
@@ -171,9 +197,22 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options => { options.JsonSerializerOptions.PropertyNameCaseInsensitive = true; });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddSignalR();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200", "http://127.0.0.1:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
 
 // Configuração correta do OpenAPI nativo do .NET 9 usando caminhos dinâmicos recomendados
 builder.Services.AddOpenApi(options =>
@@ -200,6 +239,7 @@ var app = builder.Build();
 
 app.UseCors("AllowAll");
 app.UseRouting();
+app.UseCors("AllowFrontend");
 
 app.MapOpenApi();
 app.MapScalarApiReference(options =>
@@ -215,7 +255,87 @@ app.UseMiddleware<RepCortex.Infrastructure.Middlewares.TenantMiddleware>();
 app.UseRateLimiter();    
 app.UseAuthorization();  
 
+
 app.MapControllers();
+app.MapHub<DashboardHub>("/hubs/dashboard");
+
+// --- Aplicação automática de Migrations e Seeding para Usabilidade Out-Of-The-Box ---
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var userManager = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<UsuarioIdentity>>();
+    
+    try
+    {
+        await dbContext.Database.MigrateAsync();
+        Console.WriteLine("✅ Banco de dados sincronizado e migrations aplicadas com sucesso.");
+        
+        // Seeding do Tenant de Teste/Sandbox
+        var tenantId = "teste";
+        var tenantExistente = await dbContext.Tenants.AnyAsync(t => t.Id == tenantId);
+        if (!tenantExistente)
+        {
+            var tenant = new RepCortex.Domain.Entities.Tenant(tenantId, "Espaço Sandbox de Testes", "localhost;*");
+            
+            // Força as chaves padrão que o dashboard espera usando Reflection
+            typeof(RepCortex.Domain.Entities.Tenant).GetProperty(nameof(RepCortex.Domain.Entities.Tenant.PublishableKey))?.SetValue(tenant, "rc_pub_809cc0f890694489a19fc72ffee99f36");
+            typeof(RepCortex.Domain.Entities.Tenant).GetProperty(nameof(RepCortex.Domain.Entities.Tenant.SecretKey))?.SetValue(tenant, "rc_sec_809cc0f890694489a19fc72ffee99f36");
+            
+            await dbContext.Tenants.AddAsync(tenant);
+            await dbContext.SaveChangesAsync();
+            Console.WriteLine("🌱 Tenant Sandbox semeado com sucesso.");
+        }
+        
+        // Seeding do Administrador do Sandbox
+        var adminEmail = "admin@sandbox.com";
+        var adminUser = await userManager.FindByEmailAsync(adminEmail);
+        if (adminUser == null)
+        {
+            var adminIdentity = new UsuarioIdentity
+            {
+                Id = Guid.NewGuid().ToString(),
+                NomeCompleto = "Administrador do Sandbox",
+                Email = adminEmail,
+                UserName = adminEmail,
+                TenantId = tenantId,
+                DataCadastro = DateTime.UtcNow
+            };
+            
+            var result = await userManager.CreateAsync(adminIdentity, "Admin123!");
+            if (result.Succeeded)
+            {
+                Console.WriteLine("🌱 Administrador do Sandbox semeado com sucesso. (Login: admin@sandbox.com / Senha: Admin123!)");
+            }
+            else
+            {
+                Console.WriteLine($"⚠️ Falha ao semear administrador: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+            }
+        }
+        
+        // Seeding de Avaliações Iniciais para deixar o Dashboard lindo no primeiro boot!
+        var temAvaliacoes = await dbContext.Avaliacoes.AnyAsync(a => a.TenantId == tenantId);
+        if (!temAvaliacoes)
+        {
+            var avaliacoesMock = new List<RepCortex.Domain.Entities.Avaliacao>
+            {
+                new(tenantId, "cli_1", "usr_1", "prod_celular", 5, "Sensacional! O celular é extremamente rápido e a bateria dura dois dias inteiros. Recomendo demais!", "127.0.0.1", "fp_1", RepCortex.Domain.Entities.Enums.SentimentoAvaliacao.Positivo),
+                new(tenantId, "cli_2", "usr_2", "prod_fone", 4, "Muito bom, material de ótima qualidade e som limpo, mas demorou um pouco para chegar.", "127.0.0.1", "fp_2", RepCortex.Domain.Entities.Enums.SentimentoAvaliacao.Positivo),
+                new(tenantId, "cli_3", "usr_3", "prod_relogio", 3, "É ok, bonito, mas as funções são meio básicas. Pelo preço, vale a pena.", "127.0.0.1", "fp_3", RepCortex.Domain.Entities.Enums.SentimentoAvaliacao.Neutro),
+                new(tenantId, "cli_4", "usr_4", "prod_capinha", 1, "Péssimo produto! Quebrou no primeiro dia de uso e o atendimento foi horrível.", "127.0.0.1", "fp_4", RepCortex.Domain.Entities.Enums.SentimentoAvaliacao.Negativo),
+                new(tenantId, "cli_5", "usr_5", "prod_carregador", 2, "Lento para carregar, esquenta demais e não veio o cabo descrito na caixa. Decepcionado.", "127.0.0.1", "fp_5", RepCortex.Domain.Entities.Enums.SentimentoAvaliacao.Negativo),
+                new(tenantId, "cli_6", "usr_6", "prod_mouse", 4, "Design ergonômico excelente, perfeito para trabalhar! Porém o preço é um pouco caro.", "127.0.0.1", "fp_6", RepCortex.Domain.Entities.Enums.SentimentoAvaliacao.Positivo)
+            };
+            
+            await dbContext.Avaliacoes.AddRangeAsync(avaliacoesMock);
+            await dbContext.SaveChangesAsync();
+            Console.WriteLine("🌱 Avaliações mock semeadas com sucesso.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️ Erro ao sincronizar ou semear o banco de dados: {ex.Message}");
+    }
+}
 
 using (var scope = app.Services.CreateScope())
 {

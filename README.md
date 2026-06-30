@@ -1,80 +1,88 @@
-# RepCortex 🧠🛡️
+# RepCortex - Moderador & Painel Analítico de Avaliações com IA (Multi-tenant)
 
-Plataforma SaaS Multi-Tenant corporativa de coleta de avaliações (reviews) de produtos, equipada com motor de **Análise de Sentimento local (ML.NET)** e **Rate Limiting distribuído (Redis)** baseada em janela deslizante. 
-
-O projeto foi construído utilizando **.NET 10**, aplicando práticas rigorosas de **Clean Architecture** e conceitos de **DDD (Domain-Driven Design)**, projetado para alta escalabilidade e isolamento lógico de inquilinos (Tenants).
+RepCortex é uma plataforma moderna e escalável de monitoramento de avaliações em tempo real para múltiplos clientes (*Multi-tenancy*). Através de uma API de alto desempenho acoplada a um modelo de Inteligência Artificial baseado no algoritmo de ponta **VADER** adaptado para Português, o sistema classifica automaticamente sentimentos, gerencia fluxos de moderação e propaga eventos em tempo real via websockets para um dashboard analítico.
 
 ---
 
-## 🌐 Live Demo & API Docs
+## 🚀 Funcionalidades Principais
 
-O projeto já está **deployado em produção** e você pode interagir diretamente com ele online!
-
-* **Documentação Interativa (Scalar):** [https://repcortex-production.up.railway.app/scalar/v1](https://repcortex-production.up.railway.app/scalar/v1)
-* **Base URL da API:** `https://repcortex-production.up.railway.app`
-
----
-
-## 🚀 Diferenciais Técnicos e Arquitetura
-
-### 1. Multi-Tenancy Robusto (Shared Database, Tenant Isolation)
-* **Isolamento de Inquilinos:** Cada tenant (empresa/e-commerce) possui suas próprias chaves de acesso autogeradas no cadastro (`PublishableKey` para widgets públicos e `SecretKey` para integrações de backend).
-* **Filtros Globais de Tenant:** Um middleware customizado (`TenantMiddleware`) atua interceptando requisições, injetando o contexto do Tenant ativo no escopo da requisição e assegurando que nenhum dado vaze entre inquilinos.
-
-### 2. Análise de Sentimento On-the-Fly com ML.NET
-* **IA Local:** Em vez de depender de APIs pagas ou lentas de terceiros, o RepCortex treina um modelo de classificação multiclasse local (`SdcaMaximumEntropy`) no startup do contêiner.
-* **Auto-Moderação Inteligente:** As avaliações recebidas são classificadas em *Positivo*, *Neutro* ou *Negativo*. Se uma avaliação tiver nota alta (ex: 5 estrelas), mas o algoritmo detectar sentimentos irônicos ou negativos (ex: *"Péssimo serviço, odeio tudo"*), a plataforma retém a avaliação com status `Pendente` para aprovação manual.
-
-### 3. Rate Limiting Avançado com Redis
-* **Prevenção contra Bots e Spam:** O endpoint público de ingestão de reviews possui limite de taxa de janela deslizante (`SlidingWindowRateLimiter`) integrado ao ASP.NET Core e distribuído com **Redis Cache**.
-* **Particionamento Inteligente:** O limite de requisições é isolado de forma dinâmica usando a chave compostas `rate_limit_tenant:{tenantId}:ip:{ipOrigem}`, garantindo que um bot abusando de uma loja não afete a experiência de outras na mesma API.
-
-### 4. Documentação de API Moderna com Scalar
-* Substitui o Swagger tradicional por uma interface de documentação moderna, rica e interativa fornecida pelo **Scalar** com o tema `Purple`, integrada de forma nativa às novas capacidades de OpenAPI do **.NET 10**.
-
-### 5. Arquitetura Limpa (Clean Architecture)
-A estrutura segue o fluxo clássico de dependência de dentro para fora:
-* **Domain:** Entidades puras de domínio, enums, regras de negócio ricas e contratos de serviços/repositórios.
-* **Application:** Casos de uso (Use Cases) e lógica de orquestração de negócios, DTOs e mapeamento de dados.
-* **Infrastructure:** Implementação concreta dos repositórios (EF Core com PostgreSQL), Identity de autenticação, integração com Redis Cache, segurança (JWT) e análise de sentimento (ML.NET).
-* **API / Presentation:** Controllers REST protegidos, rate limiting, middlewares de isolamento e registro de injeção de dependências.
+*   **Isolamento Multi-tenant Robusto:** Isolamento completo de dados por cliente (*tenant*) via filtros dinâmicos globais no Entity Framework Core.
+*   **Análise de Sentimento com IA (VADER Pt-BR):** Implementação nativa ultra-rápida do algoritmo de valência léxica VADER, calibrado com mais de 100 termos em português, tratando negações com limites de barreira de cláusula (ex. vírgulas e pontos), boosters de intensidade (ex: *muito*, *super*), ALL CAPS e conjunções contrastivas (ex: *mas*, *porém*).
+*   **WebSocket Realtime (SignalR):** Barramento de eventos em tempo real que atualiza gráficos analíticos e painéis de forma instantânea.
+*   **CORS & Autenticação Segura:** Autenticação via JWT Bearer para administradores e API Keys (Publishable/Secret) para ingestão externa de avaliações, com suporte a preflights de CORS.
+*   **Moderação Integrada & Auto-Aprovação:** Painel completo de moderação para o lojista aprovar ou rejeitar avaliações. Se o lojista responder a um comentário pendente, o sistema **auto-aprova** o comentário no ato da resposta!
+*   **Sandbox de Testes Integrado:** Simulador de envio de avaliações em lote diretamente pelo painel para testes locais rápidos.
 
 ---
 
-## 🛠️ Stack Tecnológica
+## 🛠️ Tecnologias Utilizadas
 
-* **Backend:** C# .NET 10 (ASP.NET Core Web API)
-* **ORM & Banco de Dados:** Entity Framework Core & PostgreSQL (com migração automática na inicialização)
-* **Caching & Rate Limiting:** StackExchange.Redis
-* **Machine Learning:** ML.NET
-* **Documentação:** Scalar API & OpenAPI nativa
-* **Testes:** xUnit, FluentAssertions e dotnet CLI
-* **Orquestração:** Docker & Docker Compose
+*   **Backend:** ASP.NET Core 10, Entity Framework Core, PostgreSQL, StackExchange Redis, Microsoft SignalR, Microsoft Identity.
+*   **Frontend:** Angular 16 (Standalone Components, Signals reativos, Chart.js).
+*   **Infraestrutura:** Docker, Docker Compose.
 
 ---
 
-## 🧪 Como Testar e Interagir com a API (100% Online)
+## 📦 Como Iniciar o Projeto (Passo a Passo)
 
-Você não precisa instalar nada ou baixar o projeto localmente para testar os endpoints! Como a aplicação já está **deployada em produção**, você pode testar todo o fluxo de ponta a ponta de duas formas extremamente simples:
+### 1. Iniciar a Infraestrutura (PostgreSQL e Redis)
+A infraestrutura roda em containers Docker leves. Na raiz do projeto, execute:
+```bash
+docker compose up -d
+```
 
-### Opção 1: Diretamente pelo Painel Interativo do Scalar (Recomendado)
-Acesse a documentação interativa:
-👉 **[https://repcortex-production.up.railway.app/scalar/v1](https://repcortex-production.up.railway.app/scalar/v1)**
+### 2. Configurar o Backend (.NET)
+O backend possui **migrações automáticas de banco de dados e semeamento de dados (seeding) out-of-the-box** no primeiro boot de desenvolvimento.
 
-Pelo próprio painel do Scalar, você consegue disparar requisições em tempo real para a nossa API na nuvem:
-1. **Registrar Tenant:** Vá na rota `POST /api/auth/registrar`, digite dados fictícios no JSON e clique em "Send Request".
-2. **Copie as chaves geradas:** A resposta trará o seu token JWT e sua `PublishableKey`.
-3. **Ingestão de Avaliação:** Vá na rota `POST /api/public/avaliacoes`, clique em Headers, configure a chave `X-Api-Key` com o valor da sua `PublishableKey` gerada e envie uma avaliação com nota e comentário (teste o ML.NET escrevendo comentários negativos com nota alta!).
-4. **Consultar como Admin:** Vá em `GET /api/admin/avaliacoes`, configure o header de autorização `Bearer <Seu-JWT-Copiado>` e veja a lista de avaliações processadas com o status atualizado da inteligência artificial local.
+1. Navegue até a pasta da API:
+   ```bash
+   cd RepCortex.API
+   ```
+2. Execute o projeto:
+   ```bash
+   dotnet run
+   ```
+   *(O projeto aplicará as migrações no banco de dados local e semeará automaticamente o espaço sandbox de testes com dados de alta qualidade e um login administrativo).*
+
+### 3. Configurar o Frontend (Angular)
+1. Navegue até a pasta do Dashboard:
+   ```bash
+   cd ../RepCortex.Dashboard
+   ```
+2. Instale as dependências:
+   ```bash
+   npm install
+   ```
+3. Inicie o servidor de desenvolvimento:
+   ```bash
+   npm start
+   ```
+4. Abra seu navegador em: `http://localhost:4200`
 
 ---
 
-### Opção 2: Utilizando ferramentas locais (Postman, Insomnia ou VS Code)
-Se você utiliza a extensão **REST Client** no VS Code ou o **Rider**, utilize o arquivo `RepCortex.API.http` presente na pasta `RepCortex.API`. Ele já está totalmente pré-configurado para apontar e disparar requisições diretamente contra o servidor de produção na nuvem!
+## 🔑 Credenciais de Teste / Sandbox Semeado
+
+O sistema já vem pré-configurado com dados ricos de simulação para você testar imediatamente após o primeiro comando!
+
+*   **Identificador de Espaço (Tenant ID):** `teste`
+*   **E-mail de Administrador:** `admin@sandbox.com`
+*   **Senha:** `Admin123!`
 
 ---
 
-## 🤝 Co-authored
-Desenvolvido com o auxílio do Copilot CLI como assistente de engenharia de software para garantir práticas de Clean Code e arquitetura corporativa moderna.
+## 🧪 Executando os Testes Unitários
 
-Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+O projeto conta com uma suíte de testes de domínio que cobrem desde regras de negócio de auto-aprovação de avaliações até o funcionamento detalhado do algoritmo de IA VADER. Para rodar os testes:
+```bash
+dotnet test
+```
+
+---
+
+## 🌟 Detalhes da Arquitetura do VADER IA
+
+Nossa inteligência artificial não necessita de APIs externas caras ou lentas. Ela usa regras de valência léxica precisas:
+*   *Exemplo:* `"Não gostei, produto horrível"`
+    *   `Não gostei` é classificado como negativo pelo inversor de negação (`-1.48`).
+    *   `produto horrível` é isolado da negação pela vírgula (barreira de cláusula) e avaliado corretamente como negativo (`-3.0`), evitando falsos positivos e falsos negativos comuns em modelos menos sofisticados!

@@ -1,0 +1,54 @@
+<div class="login-container">
+  <div class="login-card">
+    <div class="login-header">
+      <h1>RepCortex</h1>
+      <p>{{ isLoginMode() ? 'Acesse o painel do seu espaço' : 'Crie uma infraestrutura para sua empresa' }}</p>
+    </div>
+
+    <form [formGroup]="authForm" (ngSubmit)="onSubmit()">
+      
+      <div class="form-group">
+        <label for="tenantId">Identificador do Espaço (Slug / TenantId)</label>
+        <input id="tenantId" type="text" formControlName="tenantId" placeholder="ex: petmind-shop">
+      </div>
+
+      <ng-container *ngIf="!isLoginMode()">
+        <div class="form-group">
+          <label for="nomeComercial">Nome Comercial da Empresa</label>
+          <input id="nomeComercial" type="text" formControlName="nomeComercial" placeholder="ex: PetMind Shop Inc.">
+        </div>
+
+        <div class="form-group">
+          <label for="nomeCompleto">Seu Nome Completo</label>
+          <input id="nomeCompleto" type="text" formControlName="nomeCompleto" placeholder="ex: Gabriel Mitsuru">
+        </div>
+      </ng-container>
+
+      <div class="form-group">
+        <label for="email">E-mail Administrativo</label>
+        <input id="email" type="email" formControlName="email" placeholder="seu@email.com">
+      </div>
+
+      <div class="form-group">
+        <label for="senha">Senha de Acesso</label>
+        <input id="senha" type="password" formControlName="senha" placeholder="Sua senha">
+      </div>
+
+      <div *ngIf="errorMessage()" class="error-alert">
+        {{ errorMessage() }}
+      </div>
+
+      <button type="submit" class="btn-primary" [disabled]="isLoading() || authForm.invalid">
+        {{ isLoading() ? 'Processando...' : (isLoginMode() ? 'Entrar no Painel' : 'Criar Conta Open Source') }}
+      </button>
+    </form>
+
+    <div class="login-footer">
+      <button class="btn-link" type="button" (click)="toggleMode()">
+        {{ isLoginMode() ? 'Precisa de um novo espaço? Cadastre-se' : 'Já possui um espaço? Faça login' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+

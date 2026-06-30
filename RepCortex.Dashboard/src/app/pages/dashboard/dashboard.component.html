@@ -1,0 +1,714 @@
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">RepCortex</div>
+    <nav class="sidebar-nav">
+      <button
+        class="nav-item"
+        [class.active]="abaAtiva() === 'metricas'"
+        (click)="abaAtiva.set('metricas')"
+      >
+        Métricas Realtime
+      </button>
+      <button
+        class="nav-item"
+        [class.active]="abaAtiva() === 'comentarios'"
+        (click)="abaAtiva.set('comentarios'); carregarComentarios()"
+      >
+        Gerenciar Comentários
+      </button>
+      <button
+        class="nav-item"
+        [class.active]="abaAtiva() === 'integracao'"
+        (click)="abaAtiva.set('integracao')"
+      >
+        Integração & API
+      </button>
+    </nav>
+    <button class="btn-logout" (click)="executarLogout()">Sair</button>
+  </aside>
+
+  <main class="main-content">
+    <div [hidden]="abaAtiva() !== 'metricas'">
+      <header class="content-header">
+        <h2>Painel Analítico em Tempo Real</h2>
+        <div class="realtime-badge">
+          <span class="pulse-dot"></span> Ao Vivo (SignalR)
+        </div>
+      </header>
+
+      <div *ngIf="dashboardService.carregando()" class="loading-state">
+        Carregando infraestrutura de métricas...
+      </div>
+
+      <div
+        *ngIf="
+          !dashboardService.carregando() && dashboardService.metricas() as dados
+        "
+      >
+        <div class="metrics-grid">
+          <div class="card">
+            <h3>Total de Avaliações</h3>
+            <p class="value">{{ dados.totalAvaliacoes }}</p>
+          </div>
+          <div class="card">
+            <h3>Média de Notas</h3>
+            <p class="value text-purple">{{ dados.mediaNotas }} / 5.0</p>
+          </div>
+          <div class="card border-green">
+            <h3>IA: Positivas</h3>
+            <p class="value text-green">{{ dados.totalPositivas }}</p>
+          </div>
+          <div class="card border-yellow">
+            <h3>IA: Neutras</h3>
+            <p class="value text-yellow">{{ dados.totalNeutras }}</p>
+          </div>
+          <div class="card border-red">
+            <h3>IA: Negativas</h3>
+            <p class="value text-red">{{ dados.totalNegativas }}</p>
+          </div>
+        </div>
+
+        <div class="chart-section">
+          <h3>Volumetria de Ingestão de Dados</h3>
+          <div class="chart-container">
+            <canvas #chartCanvas></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="abaAtiva() === 'comentarios'">
+      <header class="content-header">
+        <h2>Moderação & Gerenciamento de Comentários</h2>
+        <p class="subtitle" style="color: #9ca3af; margin-top: 4px">
+          Gerencie os comentários recebidos no seu site monitorados por
+          inteligência artificial.
+        </p>
+      </header>
+
+      <div *ngIf="carregandoComentarios()" class="loading-state">
+        Carregando comentários e análises de sentimento...
+      </div>
+
+      <div *ngIf="!carregandoComentarios()">
+        <div
+          *ngIf="avaliacoes().length === 0"
+          class="empty-state"
+          style="text-align: center; padding: 40px; color: #9ca3af"
+        >
+          Nenhuma avaliação recebida até o momento.
+        </div>
+
+        <div *ngIf="avaliacoes().length > 0" class="comments-container">
+          <div class="comments-table-wrapper">
+            <table class="comments-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Produto</th>
+                  <th>Nota</th>
+                  <th>Comentário</th>
+                  <th>IA Sentimento</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let avaliacao of avaliacoes()">
+                  <td>
+                    {{ avaliacao.dataCriacao | date: "dd/MM/yyyy HH:mm" }}
+                  </td>
+                  <td>
+                    <span class="product-id">{{ avaliacao.produtoId }}</span>
+                  </td>
+                  <td>
+                    <span class="rating-badge">⭐ {{ avaliacao.nota }}</span>
+                  </td>
+                  <td class="comment-text-cell">
+                    <div class="comment-body">{{ avaliacao.comentario }}</div>
+
+                    <!-- Resposta do Tenant já cadastrada -->
+                    <div
+                      *ngIf="avaliacao.resposta"
+                      class="tenant-reply-box"
+                      style="
+                        margin-top: 8px;
+                        padding: 6px 10px;
+                        background: rgba(124, 58, 237, 0.08);
+                        border-left: 3px solid #7c3aed;
+                        border-radius: 4px;
+                        font-size: 0.85rem;
+                        color: #a78bfa;
+                        white-space: normal;
+                        word-break: break-word;
+                      "
+                    >
+                      <strong>Sua Resposta:</strong> {{ avaliacao.resposta }}
+                    </div>
+
+                    <!-- Formulário para responder se ainda não tiver resposta -->
+                    <div
+                      *ngIf="!avaliacao.resposta"
+                      class="reply-input-wrapper"
+                      style="
+                        margin-top: 8px;
+                        display: flex;
+                        gap: 6px;
+                        align-items: center;
+                      "
+                    >
+                      <input
+                        type="text"
+                        placeholder="Responder avaliação..."
+                        #replyInput
+                        style="
+                          background: var(--bg-primary);
+                          border: 1px solid var(--border-color);
+                          color: var(--text-main);
+                          padding: 4px 8px;
+                          border-radius: 4px;
+                          font-size: 0.85rem;
+                          flex-grow: 1;
+                          outline: none;
+                        "
+                        (keyup.enter)="
+                          responderComment(avaliacao.id, replyInput.value);
+                          replyInput.value = ''
+                        "
+                      />
+                      <button
+                        style="
+                          background: #7c3aed;
+                          color: #fff;
+                          border: none;
+                          padding: 4px 10px;
+                          border-radius: 4px;
+                          font-size: 0.85rem;
+                          font-weight: 600;
+                          cursor: pointer;
+                          transition: background 0.2s;
+                        "
+                        onmouseover="this.style.background = '#6d28d9'"
+                        onmouseout="this.style.background = '#7c3aed'"
+                        (click)="
+                          responderComment(avaliacao.id, replyInput.value);
+                          replyInput.value = ''
+                        "
+                      >
+                        Enviar
+                      </button>
+                    </div>
+                  </td>
+                  <td>
+                    <span
+                      class="badge"
+                      [ngClass]="{
+                        'badge-positive':
+                          avaliacao.sentimento === 1 ||
+                          avaliacao.sentimento === 'Positivo',
+                        'badge-neutral':
+                          avaliacao.sentimento === 2 ||
+                          avaliacao.sentimento === 'Neutro',
+                        'badge-negative':
+                          avaliacao.sentimento === 3 ||
+                          avaliacao.sentimento === 'Negativo',
+                      }"
+                    >
+                      {{
+                        avaliacao.sentimento === 1 ||
+                        avaliacao.sentimento === "Positivo"
+                          ? "😊 Positivo"
+                          : avaliacao.sentimento === 2 ||
+                              avaliacao.sentimento === "Neutro"
+                            ? "😐 Neutro"
+                            : avaliacao.sentimento === 3 ||
+                                avaliacao.sentimento === "Negativo"
+                              ? "😡 Negativo"
+                              : "Classificando"
+                      }}
+                    </span>
+                  </td>
+                  <td>
+                    <span
+                      class="badge-status"
+                      [ngClass]="{
+                        'status-approved':
+                          avaliacao.status === 'Aprovado' ||
+                          avaliacao.status === 'Aprovada',
+                        'status-pending': avaliacao.status === 'Pendente',
+                        'status-rejected':
+                          avaliacao.status === 'Rejeitado' ||
+                          avaliacao.status === 'Rejeitada',
+                      }"
+                    >
+                      {{ avaliacao.status }}
+                    </span>
+                  </td>
+
+                  <td class="actions-cell">
+                    <div
+                      class="action-buttons"
+                      *ngIf="avaliacao.status === 'Pendente'"
+                    >
+                      <button
+                        class="btn-approve"
+                        (click)="aprovarComment(avaliacao.id)"
+                      >
+                        Aprovar
+                      </button>
+                      <button
+                        class="btn-reject"
+                        (click)="rejeitarComment(avaliacao.id)"
+                      >
+                        Rejeitar
+                      </button>
+                    </div>
+
+                    <span
+                      *ngIf="avaliacao.status !== 'Pendente'"
+                      class="text-muted"
+                      >-</span
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="abaAtiva() === 'integracao'">
+      <header class="content-header">
+        <h2>Central de Integração & API</h2>
+        <p class="subtitle" style="color: #9ca3af; margin-top: 4px">
+          Gerencie suas credenciais de acesso e conecte a inteligência do
+          RepCortex ao seu ecossistema.
+        </p>
+      </header>
+
+      <div
+        class="credentials-grid"
+        style="
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          gap: 16px;
+          margin-bottom: 24px;
+        "
+      >
+        <div
+          class="card border-purple"
+          style="
+            background: #111827;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #7c3aed;
+          "
+        >
+          <h4
+            style="
+              color: #a78bfa;
+              margin-bottom: 8px;
+              font-size: 0.9rem;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+            "
+          >
+            Chave Pública (Publishable Key)
+          </h4>
+          <p style="font-size: 0.8rem; color: #9ca3af; margin-bottom: 12px">
+            Utilize no frontend ou no script do Widget coletor.
+          </p>
+          <div
+            class="key-display"
+            style="
+              display: flex;
+              gap: 8px;
+              background: #1f2937;
+              padding: 8px 12px;
+              border-radius: 4px;
+              align-items: center;
+            "
+          >
+            <code
+              style="
+                color: #34d399;
+                font-family: monospace;
+                font-size: 0.9rem;
+                flex-grow: 1;
+                overflow: hidden;
+                text-overflow: ellipsis;
+              "
+              >rc_pub_809cc0f890694489a19fc72ffee99f36</code
+            >
+          </div>
+        </div>
+
+        <div
+          class="card"
+          style="
+            background: #111827;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #1f2937;
+          "
+        >
+          <h4
+            style="
+              color: #e5e7eb;
+              margin-bottom: 8px;
+              font-size: 0.9rem;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+            "
+          >
+            Identificador do Tenant (Slug)
+          </h4>
+          <p style="font-size: 0.8rem; color: #9ca3af; margin-bottom: 12px">
+            Seu identificador único de isolamento de dados.
+          </p>
+          <div
+            class="key-display"
+            style="
+              display: flex;
+              gap: 8px;
+              background: #1f2937;
+              padding: 8px 12px;
+              border-radius: 4px;
+              align-items: center;
+            "
+          >
+            <code
+              style="
+                color: #a78bfa;
+                font-family: monospace;
+                font-size: 0.9rem;
+                flex-grow: 1;
+              "
+              >{{ obterTenantIdLogado() }}</code
+            >
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="integration-tabs-container"
+        style="
+          background: #111827;
+          border-radius: 8px;
+          border: 1px solid #1f2937;
+          padding: 24px;
+        "
+      >
+        <section
+          class="doc-section"
+          style="
+            margin-bottom: 40px;
+            border-bottom: 1px solid #1f2937;
+            padding-bottom: 32px;
+          "
+        >
+          <h3
+            style="
+              color: #fff;
+              font-size: 1.3rem;
+              margin-bottom: 12px;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+            "
+          >
+            <span
+              style="
+                background: rgba(124, 58, 237, 0.2);
+                color: #7c3aed;
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-size: 1rem;
+              "
+              >1</span
+            >
+            Instalação via Script Tag (Widget Web)
+          </h3>
+          <p
+            style="
+              color: #9ca3af;
+              font-size: 0.95rem;
+              line-height: 1.5;
+              margin-bottom: 16px;
+            "
+          >
+            A forma mais rápida de injetar o formulário de captura e exibição de
+            avaliações nas suas páginas de produto. Copie o script abaixo e
+            adicione antes do fechamento do corpo (<code style="color: #e5e7eb"
+              >&lt;/body&gt;</code
+            >) do seu site:
+          </p>
+
+          <pre
+            class="code-block"
+            style="
+              background: #030712;
+              padding: 16px;
+              border-radius: 6px;
+              border: 1px solid #1f2937;
+              overflow-x: auto;
+            "
+          ><code style="color: #a78bfa; font-family: monospace; font-size: 0.85rem; line-height: 1.6;">&lt;!-- Configuração do RepCortex --&gt;
+&lt;script&gt;
+  window.RepCortexConfig = {{ '{' }}
+    tenantId: "{{ obterTenantIdLogado() }}",
+    publishableKey: "rc_pub_809cc0f890694489a19fc72ffee99f36"
+  {{ '}' }};
+&lt;/script&gt;
+
+&lt;!-- Script do Widget Injetor --&gt;
+&lt;script src="https://cdn.repcortex.com/v1/widget.js" async&gt;&lt;/script&gt;
+
+&lt;!-- O local exato onde o formulário e os comentários aprovados vão renderizar --&gt;
+&lt;div id="repcortex-review-widget" data-product-id="SEU_ID_DE_PRODUTO_AQUI"&gt;&lt;/div&gt;</code></pre>
+        </section>
+
+        <section
+          class="doc-section"
+          style="
+            margin-bottom: 40px;
+            border-bottom: 1px solid #1f2937;
+            padding-bottom: 32px;
+          "
+        >
+          <h3
+            style="
+              color: #fff;
+              font-size: 1.3rem;
+              margin-bottom: 12px;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+            "
+          >
+            <span
+              style="
+                background: rgba(16, 185, 129, 0.2);
+                color: #10b981;
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-size: 1rem;
+              "
+              >2</span
+            >
+            Integração Direta via API Rest (Backend)
+          </h3>
+          <p
+            style="
+              color: #9ca3af;
+              font-size: 0.95rem;
+              line-height: 1.5;
+              margin-bottom: 16px;
+            "
+          >
+            Se você prefere criar seus próprios formulários e tratar a resposta,
+            submeta os dados diretamente ao nosso gateway de ingestão
+            assíncrono.
+          </p>
+
+          <div
+            class="api-endpoint"
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              margin-bottom: 16px;
+              background: #030712;
+              padding: 8px 12px;
+              border-radius: 4px;
+              border: 1px solid #1f2937;
+            "
+          >
+            <span
+              style="
+                background: #10b981;
+                color: #fff;
+                font-weight: bold;
+                font-size: 0.75rem;
+                padding: 4px 8px;
+                border-radius: 3px;
+              "
+              >POST</span
+            >
+            <code
+              style="color: #e5e7eb; font-family: monospace; font-size: 0.85rem"
+              >/api/public/avaliacoes</code
+            >
+          </div>
+
+          <h4 style="color: #e5e7eb; font-size: 0.95rem; margin-bottom: 8px">
+            Headers Necessários:
+          </h4>
+          <pre
+            class="code-block"
+            style="
+              background: #030712;
+              padding: 12px;
+              border-radius: 6px;
+              border: 1px solid #1f2937;
+              margin-bottom: 16px;
+            "
+          ><code style="color: #cbd5e1; font-family: monospace; font-size: 0.85rem;">Content-Type: application/json
+x-api-key: rc_pub_809cc0f890694489a19fc72ffee99f36</code></pre>
+
+          <h4 style="color: #e5e7eb; font-size: 0.95rem; margin-bottom: 8px">
+            Corpo da Requisição (Payload JSON):
+          </h4>
+          <pre
+            class="code-block"
+            style="
+              background: #030712;
+              padding: 16px;
+              border-radius: 6px;
+              border: 1px solid #1f2937;
+              overflow-x: auto;
+            "
+          ><code style="color: #34d399; font-family: monospace; font-size: 0.85rem; line-height: 1.5;">{{ '{' }}
+  "tenantId": "{{ obterTenantIdLogado() }}",
+  "clienteId": "cli_982341",        // ID único do comprador no seu banco
+  "usuarioIdExterno": "usr_7721",   // Identificador público do usuário
+  "produtoId": "slug-produto-123",  // SKU ou Slug identificador do produto
+  "nota": 5,                        // Inteiro de 1 a 5
+  "comentario": "Excelente qualidade, a IA detectará sentimento positivo!",
+  "ipOrigem": "189.12.34.56",       // IP real do cliente para segurança antispam
+  "fingerprint": "hash_dispositivo_evita_duplicidade" 
+{{ '}' }}</code></pre>
+        </section>
+
+        <section class="doc-section">
+          <h3
+            style="
+              color: #fff;
+              font-size: 1.3rem;
+              margin-bottom: 12px;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+            "
+          >
+            <span
+              style="
+                background: rgba(245, 158, 11, 0.2);
+                color: #f59e0b;
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-size: 1rem;
+              "
+              >3</span
+            >
+            Playground Sandbox & Simulador
+          </h3>
+          <p
+            style="
+              color: #9ca3af;
+              font-size: 0.95rem;
+              line-height: 1.5;
+              margin-bottom: 20px;
+            "
+          >
+            Envie dados simulados diretamente para ver as engrenagens de IA e o
+            barramento SignalR funcionando em tempo real no painel.
+          </p>
+
+          <div
+            class="sandbox-grid"
+            style="
+              display: grid;
+              grid-template-columns: 1fr;
+              gap: 20px;
+              background: #030712;
+              padding: 20px;
+              border-radius: 6px;
+              border: 1px solid #1f2937;
+            "
+          >
+            <div
+              class="sandbox-form"
+              style="display: flex; flex-direction: column; gap: 16px"
+            >
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: 100px 1fr;
+                  gap: 16px;
+                  align-items: center;
+                "
+              >
+                <label style="color: #9ca3af; font-size: 0.85rem"
+                  >Nota (1 a 5):</label
+                >
+                <input
+                  type="number"
+                  min="1"
+                  max="5"
+                  #testNota
+                  value="5"
+                  style="
+                    background: #111827;
+                    border: 1px solid #1f2937;
+                    color: #fff;
+                    padding: 8px;
+                    border-radius: 4px;
+                    max-width: 80px;
+                    outline: none;
+                  "
+                />
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 8px">
+                <label style="color: #9ca3af; font-size: 0.85rem"
+                  >Comentário de Teste:</label
+                >
+                <textarea
+                  placeholder="Escreva algo que desafie o ML.NET (ex: Odiei o atraso, péssimo!)"
+                  #testComentario
+                  style="
+                    background: #111827;
+                    border: 1px solid #1f2937;
+                    color: #fff;
+                    padding: 10px;
+                    border-radius: 4px;
+                    min-height: 80px;
+                    resize: vertical;
+                    outline: none;
+                    font-size: 0.9rem;
+                  "
+                ></textarea>
+              </div>
+
+              <div style="text-align: right">
+                <button
+                  class="btn-primary"
+                  style="
+                    background: #7c3aed;
+                    color: #fff;
+                    border: none;
+                    padding: 10px 20px;
+                    border-radius: 4px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: background 0.2s;
+                  "
+                  onmouseover="this.style.background = '#6d28d9'"
+                  onmouseout="this.style.background = '#7c3aed'"
+                  (click)="
+                    enviarAvaliacaoTeste(testNota.value, testComentario.value);
+                    testComentario.value = ''
+                  "
+                >
+                  Disparar Ingestão Simulada
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>

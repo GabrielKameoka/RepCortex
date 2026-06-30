@@ -31,8 +31,19 @@ public class AvaliacaoService
 
     public async Task<Avaliacao> CriarAsync(CriarAvaliacaoRequest request)
     {
-        // Tenta obter o TenantId que o TenantService configurou
+        // Tenta obter pelo Middleware/Header. Se vier nulo ou vazio, usa o do JSON/Request.
         var tenantId = _tenantService.ObterTenantId();
+    
+        if (string.IsNullOrWhiteSpace(tenantId))
+        {
+            tenantId = request.TenantId;
+        }
+
+        // Se mesmo assim for nulo, lança uma exceção amigável antes de quebrar no domínio
+        if (string.IsNullOrWhiteSpace(tenantId))
+        {
+            throw new ArgumentException("Não foi possível identificar o Tenant através do cabeçalho de API ou do corpo da requisição.");
+        }
 
         // Se o serviço falhar ou estiver vazio no escopo, capture direto das Claims
         if (string.IsNullOrEmpty(tenantId))
@@ -77,5 +88,47 @@ public class AvaliacaoService
     {
         var tenantId = _tenantService.ObterTenantId();
         return await _repository.ObterTodosAsync(tenantId);
+    }
+
+    public async Task AprovarAsync(Guid id)
+    {
+        var avaliacao = await _repository.ObterPorIdAsync(id);
+        if (avaliacao == null)
+            throw new KeyNotFoundException("Avaliação não encontrada.");
+
+        var tenantId = _tenantService.ObterTenantId();
+        if (avaliacao.TenantId != tenantId)
+            throw new UnauthorizedAccessException("Acesso negado.");
+
+        avaliacao.Aprovar();
+        await _repository.AtualizarAsync(avaliacao);
+    }
+
+    public async Task RejeitarAsync(Guid id)
+    {
+        var avaliacao = await _repository.ObterPorIdAsync(id);
+        if (avaliacao == null)
+            throw new KeyNotFoundException("Avaliação não encontrada.");
+
+        var tenantId = _tenantService.ObterTenantId();
+        if (avaliacao.TenantId != tenantId)
+            throw new UnauthorizedAccessException("Acesso negado.");
+
+        avaliacao.Rejeitar();
+        await _repository.AtualizarAsync(avaliacao);
+    }
+
+    public async Task ResponderAsync(Guid id, string resposta)
+    {
+        var avaliacao = await _repository.ObterPorIdAsync(id);
+        if (avaliacao == null)
+            throw new KeyNotFoundException("Avaliação não encontrada.");
+
+        var tenantId = _tenantService.ObterTenantId();
+        if (avaliacao.TenantId != tenantId)
+            throw new UnauthorizedAccessException("Acesso negado.");
+
+        avaliacao.Responder(resposta);
+        await _repository.AtualizarAsync(avaliacao);
     }
 }

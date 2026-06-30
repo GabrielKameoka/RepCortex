@@ -19,6 +19,7 @@ public class Avaliacao : ITenantEntity
     public DateTime DataCriacao { get; private set; } = DateTime.UtcNow;
     public StatusAvaliacao Status { get; private set; } = StatusAvaliacao.Pendente;
     public SentimentoAvaliacao Sentimento { get; private set; } = SentimentoAvaliacao.NaoAnalisado;
+    public string? Resposta { get; private set; }
     public string TenantId { get; private set; }
     public virtual Tenant Tenant { get; private set; }
 
@@ -70,4 +71,17 @@ public class Avaliacao : ITenantEntity
     public void Aprovar() => Status = StatusAvaliacao.Aprovada;
 
     public void Rejeitar() => Status = StatusAvaliacao.Rejeitada;
+
+    public void Responder(string resposta)
+    {
+        if (string.IsNullOrWhiteSpace(resposta))
+            throw new ArgumentException("A resposta não pode ser vazia.");
+
+        Resposta = resposta;
+
+        if (Status == StatusAvaliacao.Pendente)
+        {
+            Aprovar();
+        }
+    }
 }
