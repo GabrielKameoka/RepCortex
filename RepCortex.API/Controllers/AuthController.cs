@@ -9,7 +9,7 @@ namespace RepCortex.API.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-[AllowAnonymous]
+[AllowAnonymous] // Mantido: Permite registrar e logar publicamente para gerar as credenciais
 public class AuthController : ControllerBase
 {
     private readonly RegistrarTenantUseCase _registrarTenantUseCase;
