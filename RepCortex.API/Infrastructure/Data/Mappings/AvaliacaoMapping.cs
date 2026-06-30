@@ -20,6 +20,7 @@ public class AvaliacaoMapping : IEntityTypeConfiguration<Avaliacao>
 
         builder.Property(a => a.Status).HasConversion<string>().HasMaxLength(30);
         builder.Property(a => a.Sentimento).HasConversion<string>().HasMaxLength(30);
+        builder.Property(a => a.Resposta).HasMaxLength(2000);
 
         builder.HasOne(a => a.Tenant)
             .WithMany()

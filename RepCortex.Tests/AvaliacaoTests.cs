@@ -86,4 +86,22 @@ public class AvaliacaoTests
         acao.Should().Throw<ArgumentException>()
             .WithMessage("A nota deve estar entre 1 e 5.");
     }
+
+    [Fact]
+    public void Responder_DeveAutoAprovar_QuandoEstiverPendente()
+    {
+        // Arrange
+        var avaliacao = new Avaliacao(
+            "tenant-01", "cli-1", "usr-1", "prod-1",
+            2, "Produto ruim", "127.0.0.1", "fingerprint", SentimentoAvaliacao.Negativo
+        );
+        avaliacao.Status.Should().Be(StatusAvaliacao.Pendente);
+
+        // Act
+        avaliacao.Responder("Lamento o ocorrido, vamos te enviar um produto novo!");
+
+        // Assert
+        avaliacao.Status.Should().Be(StatusAvaliacao.Aprovada);
+        avaliacao.Resposta.Should().Be("Lamento o ocorrido, vamos te enviar um produto novo!");
+    }
 }
