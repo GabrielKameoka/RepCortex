@@ -17,6 +17,7 @@ using Scalar.AspNetCore;
 
 DotNetEnv.Env.Load(); // Carrega o arquivo .env para o ambiente antes de subir a API
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -24,19 +25,18 @@ var jwtSecret = builder.Configuration["Jwt:Secret"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
 
-if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Contains("SUA_CHAVE_JWT"))
+// Validação limpa
+if (string.IsNullOrWhiteSpace(jwtSecret))
 {
     throw new InvalidOperationException(
         "Configure a variável de ambiente 'Jwt__Secret' com uma chave JWT válida antes de inicializar a API.");
 }
-
-if (string.IsNullOrWhiteSpace(jwtIssuer) || jwtIssuer.Contains("SUA_ISSUER_JWT"))
+if (string.IsNullOrWhiteSpace(jwtIssuer))
 {
     throw new InvalidOperationException(
         "Configure a variável de ambiente 'Jwt__Issuer' com um emissor JWT válido antes de inicializar a API.");
 }
-
-if (string.IsNullOrWhiteSpace(jwtAudience) || jwtAudience.Contains("SUA_AUDIENCE_JWT"))
+if (string.IsNullOrWhiteSpace(jwtAudience))
 {
     throw new InvalidOperationException(
         "Configure a variável de ambiente 'Jwt__Audience' com uma audience JWT válida antes de inicializar a API.");
@@ -44,14 +44,13 @@ if (string.IsNullOrWhiteSpace(jwtAudience) || jwtAudience.Contains("SUA_AUDIENCE
 
 builder.Services.AddIdentityCore<UsuarioIdentity>(options =>
     {
-        // Aqui você pode customizar regras de senha se quiser (exemplo):
         options.Password.RequireDigit = false;
         options.Password.RequireLowercase = false;
         options.Password.RequireNonAlphanumeric = false;
         options.Password.RequireUppercase = false;
         options.Password.RequiredLength = 6;
     })
-    .AddEntityFrameworkStores<AppDbContext>(); // Diz para o Identity salvar os dados no seu contexto do EF Core
+    .AddEntityFrameworkStores<AppDbContext>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -200,7 +199,6 @@ builder.Services.AddRateLimiter(options =>
 
 builder.Services.AddControllers()
     .AddJsonOptions(options => { options.JsonSerializerOptions.PropertyNameCaseInsensitive = true; });
-builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSignalR();
@@ -216,27 +214,48 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Configuração correta do OpenAPI nativo do .NET 9 usando caminhos dinâmicos recomendados
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, context, cancellationToken) =>
+    {
+        // Adiciona o servidor sem depender de pacotes de terceiros legados
+        document.Servers = [new() { Url = "https://repcortex-production.up.railway.app" }];
+        return Task.CompletedTask;
+    });
+});
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader();
+    });
+});
+
 var app = builder.Build();
 
+app.UseCors("AllowAll");
 app.UseRouting();
 app.UseCors("AllowFrontend");
 
-if (app.Environment.IsDevelopment())
+app.MapOpenApi();
+app.MapScalarApiReference(options =>
 {
-    app.MapOpenApi();
-    app.MapScalarApiReference(options =>
-    {
-        options.Title = "RepCortex API";
-        options.Theme = ScalarTheme.Purple;
-        options.OpenApiRoutePattern = "/openapi/v1.json";
-    });
-}
+    options.Title = "RepCortex API";
+    options.Theme = ScalarTheme.Purple;
+    // Usando o padrão relativo nativo do .NET 9
+    options.OpenApiRoutePattern = "/openapi/v1.json"; 
+});
 
-app.UseAuthentication(); // 1. Decodifica o JWT ou valida a API Key e monta o context.User
-app.UseMiddleware<
-    RepCortex.Infrastructure.Middlewares.TenantMiddleware>(); // 2. Captura as Claims do User e define o TenantId global
-app.UseRateLimiter(); // 2.5 Limitador de taxa baseado no Tenant autenticado
-app.UseAuthorization(); // 3. Valida se a política (Admin, Public, Secret) bate com o endpoint
+app.UseAuthentication(); 
+app.UseMiddleware<RepCortex.Infrastructure.Middlewares.TenantMiddleware>(); 
+app.UseRateLimiter();    
+app.UseAuthorization();  
+
+
 app.MapControllers();
 app.MapHub<DashboardHub>("/hubs/dashboard");
 
@@ -316,6 +335,12 @@ using (var scope = app.Services.CreateScope())
     {
         Console.WriteLine($"⚠️ Erro ao sincronizar ou semear o banco de dados: {ex.Message}");
     }
+}
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate(); 
 }
 
 app.Run();
