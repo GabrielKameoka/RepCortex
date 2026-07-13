@@ -3,3 +3,4 @@ export const environment = {
   apiUrl: 'https://repcortex-production.up.railway.app/api',
   hubUrl: 'https://repcortex-production.up.railway.app/hubs'
 };
+

@@ -31,9 +31,6 @@
     <div [hidden]="abaAtiva() !== 'metricas'">
       <header class="content-header">
         <h2>Painel Analítico em Tempo Real</h2>
-        <div class="realtime-badge">
-          <span class="pulse-dot"></span> Ao Vivo (SignalR)
-        </div>
       </header>
 
       <div *ngIf="dashboardService.carregando()" class="loading-state">
@@ -80,10 +77,6 @@
     <div *ngIf="abaAtiva() === 'comentarios'">
       <header class="content-header">
         <h2>Moderação & Gerenciamento de Comentários</h2>
-        <p class="subtitle" style="color: #9ca3af; margin-top: 4px">
-          Gerencie os comentários recebidos no seu site monitorados por
-          inteligência artificial.
-        </p>
       </header>
 
       <div *ngIf="carregandoComentarios()" class="loading-state">
@@ -576,6 +569,7 @@ x-api-key: rc_pub_809cc0f890694489a19fc72ffee99f36</code></pre>
   "produtoId": "slug-produto-123",  // SKU ou Slug identificador do produto
   "nota": 5,                        // Inteiro de 1 a 5
   "comentario": "Excelente qualidade, a IA detectará sentimento positivo!",
+  "resposta": "Obrigado pelo feedback!",  // Opcional: resposta do tenant para o comentário 
   "ipOrigem": "189.12.34.56",       // IP real do cliente para segurança antispam
   "fingerprint": "hash_dispositivo_evita_duplicidade" 
 {{ '}' }}</code></pre>
