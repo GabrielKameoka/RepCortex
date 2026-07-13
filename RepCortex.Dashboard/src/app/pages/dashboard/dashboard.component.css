@@ -408,6 +408,10 @@
   line-height: 1.4;
 }
 
+.comment-body{
+  text-wrap: wrap;
+}
+
 /* Badges de Sentimento VADER */
 .badge {
   display: inline-flex;
