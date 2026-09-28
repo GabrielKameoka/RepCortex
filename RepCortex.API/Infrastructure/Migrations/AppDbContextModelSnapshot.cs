@@ -243,6 +243,11 @@ namespace RepCortex.Infrastructure.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<string>("PoliticaModeracao")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
                     b.Property<string>("PublishableKey")
                         .IsRequired()
                         .HasMaxLength(100)

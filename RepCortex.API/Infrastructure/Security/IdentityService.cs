@@ -48,6 +48,7 @@ public class IdentityService : IIdentityService
         var tenantIdNormalizado = tenantId.ToLower().Trim();
         var emailNormalizado = _userManagerNative.NormalizeEmail(email);
         var usuarioIdentity = await _userManagerNative.Users
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(u =>
                 u.NormalizedEmail == emailNormalizado &&
                 u.TenantId == tenantIdNormalizado);

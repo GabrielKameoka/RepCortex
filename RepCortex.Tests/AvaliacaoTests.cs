@@ -56,6 +56,17 @@ public class AvaliacaoTests
         avaliacao.Status.Should().Be(StatusAvaliacao.Pendente); // Deve ficar retido para o lojista
     }
 
+    [Fact]
+    public void Construtor_DeveReterComoPendente_QuandoPoliticaForManual()
+    {
+        var avaliacao = new Avaliacao(
+            "tenant-01", "cli-1", "usr-1", "prod-1",
+            5, "Excelente produto", "127.0.0.1", "fingerprint",
+            SentimentoAvaliacao.Positivo, PoliticaModeracao.Manual);
+
+        avaliacao.Status.Should().Be(StatusAvaliacao.Pendente);
+    }
+
     [Theory]
     [InlineData(1)]
     [InlineData(2)]

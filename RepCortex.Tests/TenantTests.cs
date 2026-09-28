@@ -1,5 +1,6 @@
 using FluentAssertions;
 using RepCortex.Domain.Entities;
+using RepCortex.Domain.Entities.Enums;
 using System;
 using Xunit;
 
@@ -7,6 +8,23 @@ namespace RepCortex.Tests;
 
 public class TenantTests
 {
+    [Fact]
+    public void Tenant_DeveIniciarComPoliticaAutomatica()
+    {
+        var tenant = new Tenant("loja", "Loja");
+
+        tenant.PoliticaModeracao.Should().Be(PoliticaModeracao.Automatica);
+    }
+
+    [Fact]
+    public void Tenant_DevePermitirAlterarPoliticaDeModeracao()
+    {
+        var tenant = new Tenant("loja", "Loja");
+
+        tenant.DefinirPoliticaModeracao(PoliticaModeracao.Manual);
+
+        tenant.PoliticaModeracao.Should().Be(PoliticaModeracao.Manual);
+    }
     [Fact]
     public void Construtor_DeveGerarChavesPublicaESecretaCorretamente()
     {

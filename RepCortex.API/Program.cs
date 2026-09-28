@@ -42,13 +42,19 @@ if (string.IsNullOrWhiteSpace(jwtAudience))
         "Configure a variável de ambiente 'Jwt__Audience' com uma audience JWT válida antes de inicializar a API.");
 }
 
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "Configure a ConnectionStrings__DefaultConnection válida antes de inicializar a API.");
+}
+
 builder.Services.AddIdentityCore<UsuarioIdentity>(options =>
     {
         options.Password.RequireDigit = false;
         options.Password.RequireLowercase = false;
         options.Password.RequireNonAlphanumeric = false;
         options.Password.RequireUppercase = false;
-        options.Password.RequiredLength = 6;
+        options.Password.RequiredLength = 8;
     })
     .AddEntityFrameworkStores<AppDbContext>();
 
@@ -203,41 +209,33 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSignalR();
 
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? ["http://localhost:4200", "http://127.0.0.1:4200"];
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:4200", "http://127.0.0.1:4200")
+        policy.WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
     });
 });
 
-// Configuração correta do OpenAPI nativo do .NET 9 usando caminhos dinâmicos recomendados
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer((document, context, cancellationToken) =>
     {
-        // Adiciona o servidor sem depender de pacotes de terceiros legados
-        document.Servers = [new() { Url = "https://repcortex-production.up.railway.app" }];
+        var publicUrl = builder.Configuration["OpenApi:PublicUrl"];
+        if (!string.IsNullOrWhiteSpace(publicUrl))
+            document.Servers = [new() { Url = publicUrl }];
         return Task.CompletedTask;
-    });
-});
-
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin()
-            .AllowAnyMethod()
-            .AllowAnyHeader();
     });
 });
 
 var app = builder.Build();
 
-app.UseCors("AllowAll");
 app.UseRouting();
 app.UseCors("AllowFrontend");
 
@@ -250,97 +248,32 @@ app.MapScalarApiReference(options =>
     options.OpenApiRoutePattern = "/openapi/v1.json"; 
 });
 
-app.UseAuthentication(); 
-app.UseMiddleware<RepCortex.Infrastructure.Middlewares.TenantMiddleware>(); 
-app.UseRateLimiter();    
-app.UseAuthorization();  
+app.UseAuthentication();
+app.UseMiddleware<RepCortex.Infrastructure.Middlewares.TenantMiddleware>();
+app.UseRateLimiter();
+app.UseAuthorization();
 
 
 app.MapControllers();
 app.MapHub<DashboardHub>("/hubs/dashboard");
 
-// --- Aplicação automática de Migrations e Seeding para Usabilidade Out-Of-The-Box ---
-using (var scope = app.Services.CreateScope())
+var applyMigrations = app.Environment.IsDevelopment() ||
+                      builder.Configuration.GetValue<bool>("Database:ApplyMigrations");
+
+if (applyMigrations)
 {
+    using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    var userManager = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<UsuarioIdentity>>();
-    
-    try
-    {
-        await dbContext.Database.MigrateAsync();
-        Console.WriteLine("✅ Banco de dados sincronizado e migrations aplicadas com sucesso.");
-        
-        // Seeding do Tenant de Teste/Sandbox
-        var tenantId = "teste";
-        var tenantExistente = await dbContext.Tenants.AnyAsync(t => t.Id == tenantId);
-        if (!tenantExistente)
-        {
-            var tenant = new RepCortex.Domain.Entities.Tenant(tenantId, "Espaço Sandbox de Testes", "localhost;*");
-            
-            // Força as chaves padrão que o dashboard espera usando Reflection
-            typeof(RepCortex.Domain.Entities.Tenant).GetProperty(nameof(RepCortex.Domain.Entities.Tenant.PublishableKey))?.SetValue(tenant, "rc_pub_809cc0f890694489a19fc72ffee99f36");
-            typeof(RepCortex.Domain.Entities.Tenant).GetProperty(nameof(RepCortex.Domain.Entities.Tenant.SecretKey))?.SetValue(tenant, "rc_sec_809cc0f890694489a19fc72ffee99f36");
-            
-            await dbContext.Tenants.AddAsync(tenant);
-            await dbContext.SaveChangesAsync();
-            Console.WriteLine("🌱 Tenant Sandbox semeado com sucesso.");
-        }
-        
-        // Seeding do Administrador do Sandbox
-        var adminEmail = "admin@sandbox.com";
-        var adminUser = await userManager.FindByEmailAsync(adminEmail);
-        if (adminUser == null)
-        {
-            var adminIdentity = new UsuarioIdentity
-            {
-                Id = Guid.NewGuid().ToString(),
-                NomeCompleto = "Administrador do Sandbox",
-                Email = adminEmail,
-                UserName = adminEmail,
-                TenantId = tenantId,
-                DataCadastro = DateTime.UtcNow
-            };
-            
-            var result = await userManager.CreateAsync(adminIdentity, "Admin123!");
-            if (result.Succeeded)
-            {
-                Console.WriteLine("🌱 Administrador do Sandbox semeado com sucesso. (Login: admin@sandbox.com / Senha: Admin123!)");
-            }
-            else
-            {
-                Console.WriteLine($"⚠️ Falha ao semear administrador: {string.Join(", ", result.Errors.Select(e => e.Description))}");
-            }
-        }
-        
-        // Seeding de Avaliações Iniciais para deixar o Dashboard lindo no primeiro boot!
-        var temAvaliacoes = await dbContext.Avaliacoes.AnyAsync(a => a.TenantId == tenantId);
-        if (!temAvaliacoes)
-        {
-            var avaliacoesMock = new List<RepCortex.Domain.Entities.Avaliacao>
-            {
-                new(tenantId, "cli_1", "usr_1", "prod_celular", 5, "Sensacional! O celular é extremamente rápido e a bateria dura dois dias inteiros. Recomendo demais!", "127.0.0.1", "fp_1", RepCortex.Domain.Entities.Enums.SentimentoAvaliacao.Positivo),
-                new(tenantId, "cli_2", "usr_2", "prod_fone", 4, "Muito bom, material de ótima qualidade e som limpo, mas demorou um pouco para chegar.", "127.0.0.1", "fp_2", RepCortex.Domain.Entities.Enums.SentimentoAvaliacao.Positivo),
-                new(tenantId, "cli_3", "usr_3", "prod_relogio", 3, "É ok, bonito, mas as funções são meio básicas. Pelo preço, vale a pena.", "127.0.0.1", "fp_3", RepCortex.Domain.Entities.Enums.SentimentoAvaliacao.Neutro),
-                new(tenantId, "cli_4", "usr_4", "prod_capinha", 1, "Péssimo produto! Quebrou no primeiro dia de uso e o atendimento foi horrível.", "127.0.0.1", "fp_4", RepCortex.Domain.Entities.Enums.SentimentoAvaliacao.Negativo),
-                new(tenantId, "cli_5", "usr_5", "prod_carregador", 2, "Lento para carregar, esquenta demais e não veio o cabo descrito na caixa. Decepcionado.", "127.0.0.1", "fp_5", RepCortex.Domain.Entities.Enums.SentimentoAvaliacao.Negativo),
-                new(tenantId, "cli_6", "usr_6", "prod_mouse", 4, "Design ergonômico excelente, perfeito para trabalhar! Porém o preço é um pouco caro.", "127.0.0.1", "fp_6", RepCortex.Domain.Entities.Enums.SentimentoAvaliacao.Positivo)
-            };
-            
-            await dbContext.Avaliacoes.AddRangeAsync(avaliacoesMock);
-            await dbContext.SaveChangesAsync();
-            Console.WriteLine("🌱 Avaliações mock semeadas com sucesso.");
-        }
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"⚠️ Erro ao sincronizar ou semear o banco de dados: {ex.Message}");
-    }
+    await dbContext.Database.MigrateAsync();
 }
 
-using (var scope = app.Services.CreateScope())
+if (builder.Configuration.GetValue<bool>("Demo:SeedData"))
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate(); 
+    using var scope = app.Services.CreateScope();
+    await RepCortex.Infrastructure.Seeding.DemoSeeder.SeedAsync(
+        scope.ServiceProvider,
+        app.Logger,
+        app.Lifetime.ApplicationStopping);
 }
 
 app.Run();

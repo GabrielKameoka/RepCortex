@@ -2,6 +2,7 @@ import { Injectable, signal, WritableSignal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import * as signalR from '@microsoft/signalr';
 import { environment } from '../../../environment/environment'; // Ajuste os caminhos relativos se necessário
+import { AuthService } from './auth.service';
 
 export interface MetricasDashboard {
   totalAvaliacoes: number;
@@ -11,6 +12,21 @@ export interface MetricasDashboard {
   totalNegativas: number;
   totalPendentesModeracao: number;
   volumetriaUltimosDias: { data: string; quantidade: number }[];
+}
+
+export interface AvaliacaoDashboard {
+  id: string;
+  produtoId: string;
+  nota: number;
+  comentario: string;
+  status: string;
+  sentimento: number | string;
+  dataCriacao: string;
+  resposta?: string;
+}
+
+export interface PoliticaModeracaoResponse {
+  politica: number;
 }
 
 @Injectable({
@@ -26,43 +42,27 @@ export class DashboardService {
   public metricas: WritableSignal<MetricasDashboard | null> = signal<MetricasDashboard | null>(null);
   public carregando = signal<boolean>(false);
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private authService: AuthService) {}
 
   public obterAvaliacoes() {
-    const token = localStorage.getItem('repcortex_token');
-    return this.http.get<any[]>(this.avaliacoesUrl, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    return this.http.get<AvaliacaoDashboard[]>(this.avaliacoesUrl);
   }
 
   public aprovarAvaliacao(id: string) {
-    const token = localStorage.getItem('repcortex_token');
-    return this.http.post(`${this.avaliacoesUrl}/${id}/aprovar`, {}, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    return this.http.post(`${this.avaliacoesUrl}/${id}/aprovar`, {});
   }
 
   public rejeitarAvaliacao(id: string) {
-    const token = localStorage.getItem('repcortex_token');
-    return this.http.post(`${this.avaliacoesUrl}/${id}/rejeitar`, {}, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    return this.http.post(`${this.avaliacoesUrl}/${id}/rejeitar`, {});
   }
 
   public responderAvaliacao(id: string, resposta: string) {
-    const token = localStorage.getItem('repcortex_token');
-    return this.http.post(`${this.avaliacoesUrl}/${id}/responder`, { resposta }, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    return this.http.post(`${this.avaliacoesUrl}/${id}/responder`, { resposta });
   }
 
   public obtenerMetricasIniciais(): void {
     this.carregando.set(true);
-    const token = localStorage.getItem('repcortex_token');
-    
-    this.http.get<MetricasDashboard>(this.apiUrl, {
-      headers: { Authorization: `Bearer ${token}` }
-    }).subscribe({
+    this.http.get<MetricasDashboard>(this.apiUrl).subscribe({
       next: (dados) => {
         this.metricas.set(dados);
         this.carregando.set(false);
@@ -75,11 +75,9 @@ export class DashboardService {
   }
 
   public iniciarConexaoRealtime(): void {
-    const token = localStorage.getItem('repcortex_token');
-
     this.hubConnection = new signalR.HubConnectionBuilder()
       .withUrl(this.hubUrl, {
-        accessTokenFactory: () => token ? token : ''
+        accessTokenFactory: () => this.authService.getToken() ?? ''
       })
       .withAutomaticReconnect()
       .build();
@@ -96,5 +94,13 @@ export class DashboardService {
 
   public fecharConexao(): void {
     this.hubConnection?.stop();
+  }
+
+  public obterPoliticaModeracao() {
+    return this.http.get<PoliticaModeracaoResponse>(`${environment.apiUrl}/admin/configuracoes/moderacao`);
+  }
+
+  public atualizarPoliticaModeracao(politica: number) {
+    return this.http.put<PoliticaModeracaoResponse>(`${environment.apiUrl}/admin/configuracoes/moderacao`, { politica });
   }
 }

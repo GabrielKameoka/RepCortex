@@ -43,6 +43,9 @@ export class AuthService {
       tap(res => {
         if (res.sucesso && res.token) {
           this.definirSessao(res.token);
+          if (res.publishableKey) {
+            sessionStorage.setItem('repcortex_publishable_key', res.publishableKey);
+          }
         }
       })
     );
@@ -50,7 +53,28 @@ export class AuthService {
 
   public logout(): void {
     localStorage.removeItem('repcortex_token');
+    sessionStorage.removeItem('repcortex_publishable_key');
     this.isAuthenticated.set(false);
+  }
+
+  public getToken(): string | null {
+    return localStorage.getItem('repcortex_token');
+  }
+
+  public getPublishableKey(): string | null {
+    return sessionStorage.getItem('repcortex_publishable_key');
+  }
+
+  public hasValidSession(): boolean {
+    const token = this.getToken();
+    if (!token) return false;
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return typeof payload.exp !== 'number' || payload.exp * 1000 > Date.now();
+    } catch {
+      return false;
+    }
   }
 
   private definirSessao(token: string): void {

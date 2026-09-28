@@ -36,4 +36,25 @@ public class PublicAvaliacaoController : ControllerBase
             avaliacao.DataCriacao
         });
     }
+
+    [HttpGet]
+    public async Task<IActionResult> ObterAprovadas(
+        [FromQuery] string produtoId,
+        [FromQuery] int pagina = 1,
+        [FromQuery] int tamanhoPagina = 20)
+    {
+        if (string.IsNullOrWhiteSpace(produtoId))
+            return BadRequest(new { mensagem = "O produtoId é obrigatório." });
+
+        try
+        {
+            var resultado = await _avaliacaoService.ObterPublicadasAsync(
+                produtoId, pagina, tamanhoPagina);
+            return Ok(resultado);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { mensagem = ex.Message });
+        }
+    }
 }

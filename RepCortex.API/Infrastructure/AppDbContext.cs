@@ -35,9 +35,9 @@ public class AppDbContext : IdentityDbContext<UsuarioIdentity>
 
         // 3. Filtros Globais Dinâmicos para Multi-tenancy
         modelBuilder.Entity<Avaliacao>()
-            .HasQueryFilter(a => string.IsNullOrEmpty(TenantId) || a.TenantId == TenantId);
+            .HasQueryFilter(a => !string.IsNullOrEmpty(TenantId) && a.TenantId == TenantId);
 
         modelBuilder.Entity<UsuarioIdentity>()
-            .HasQueryFilter(u => string.IsNullOrEmpty(TenantId) || u.TenantId == TenantId);
+            .HasQueryFilter(u => !string.IsNullOrEmpty(TenantId) && u.TenantId == TenantId);
     }
 }

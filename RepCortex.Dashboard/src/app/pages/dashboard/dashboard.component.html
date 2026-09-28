@@ -280,6 +280,25 @@
         </p>
       </header>
 
+      <section class="card moderation-settings">
+        <h3>Política de publicação</h3>
+        <p class="text-muted">
+          Escolha se novas avaliações positivas podem ser publicadas automaticamente
+          ou se todas passarão pela sua aprovação.
+        </p>
+        <label for="politicaModeracao">Modo de moderação</label>
+        <select
+          id="politicaModeracao"
+          [value]="politicaModeracao()"
+          [disabled]="salvandoPolitica() || politicaModeracao() === null"
+          (change)="alterarPoliticaModeracao($event)"
+        >
+          <option [value]="1">Automática: nota 5 e sentimento positivo</option>
+          <option [value]="2">Manual: tudo aguarda aprovação</option>
+        </select>
+        <small *ngIf="salvandoPolitica()">Salvando configuração...</small>
+      </section>
+
       <div
         class="credentials-grid"
         style="
@@ -332,7 +351,7 @@
                 overflow: hidden;
                 text-overflow: ellipsis;
               "
-              >rc_pub_809cc0f890694489a19fc72ffee99f36</code
+              >{{ authService.getPublishableKey() || 'Chave disponível após o cadastro' }}</code
             >
           </div>
         </div>
@@ -378,7 +397,7 @@
                 font-size: 0.9rem;
                 flex-grow: 1;
               "
-              >{{ obterTenantIdLogado() }}</code
+              >Identificado pela chave pública</code
             >
           </div>
         </div>
@@ -450,13 +469,12 @@
           ><code style="color: #a78bfa; font-family: monospace; font-size: 0.85rem; line-height: 1.6;">&lt;!-- Configuração do RepCortex --&gt;
 &lt;script&gt;
   window.RepCortexConfig = {{ '{' }}
-    tenantId: "{{ obterTenantIdLogado() }}",
-    publishableKey: "rc_pub_809cc0f890694489a19fc72ffee99f36"
+    publishableKey: "SUA_CHAVE_PUBLICAVEL"
   {{ '}' }};
 &lt;/script&gt;
 
 &lt;!-- Script do Widget Injetor --&gt;
-&lt;script src="https://cdn.repcortex.com/v1/widget.js" async&gt;&lt;/script&gt;
+&lt;!-- Carregue seu próprio widget ou use a API REST abaixo. --&gt;
 
 &lt;!-- O local exato onde o formulário e os comentários aprovados vão renderizar --&gt;
 &lt;div id="repcortex-review-widget" data-product-id="SEU_ID_DE_PRODUTO_AQUI"&gt;&lt;/div&gt;</code></pre>
@@ -548,7 +566,7 @@
               margin-bottom: 16px;
             "
           ><code style="color: #cbd5e1; font-family: monospace; font-size: 0.85rem;">Content-Type: application/json
-x-api-key: rc_pub_809cc0f890694489a19fc72ffee99f36</code></pre>
+x-api-key: SUA_CHAVE_PUBLICAVEL</code></pre>
 
           <h4 style="color: #e5e7eb; font-size: 0.95rem; margin-bottom: 8px">
             Corpo da Requisição (Payload JSON):
@@ -563,14 +581,11 @@ x-api-key: rc_pub_809cc0f890694489a19fc72ffee99f36</code></pre>
               overflow-x: auto;
             "
           ><code style="color: #34d399; font-family: monospace; font-size: 0.85rem; line-height: 1.5;">{{ '{' }}
-  "tenantId": "{{ obterTenantIdLogado() }}",
   "clienteId": "cli_982341",        // ID único do comprador no seu banco
   "usuarioIdExterno": "usr_7721",   // Identificador público do usuário
   "produtoId": "slug-produto-123",  // SKU ou Slug identificador do produto
   "nota": 5,                        // Inteiro de 1 a 5
   "comentario": "Excelente qualidade, a IA detectará sentimento positivo!",
-  "resposta": "Obrigado pelo feedback!",  // Opcional: resposta do tenant para o comentário 
-  "ipOrigem": "189.12.34.56",       // IP real do cliente para segurança antispam
   "fingerprint": "hash_dispositivo_evita_duplicidade" 
 {{ '}' }}</code></pre>
         </section>
@@ -596,7 +611,7 @@ x-api-key: rc_pub_809cc0f890694489a19fc72ffee99f36</code></pre>
               "
               >3</span
             >
-            Playground Sandbox & Simulador
+            Leitura pública de avaliações aprovadas
           </h3>
           <p
             style="
@@ -606,8 +621,8 @@ x-api-key: rc_pub_809cc0f890694489a19fc72ffee99f36</code></pre>
               margin-bottom: 20px;
             "
           >
-            Envie dados simulados diretamente para ver as engrenagens de IA e o
-            barramento SignalR funcionando em tempo real no painel.
+            O site da sua loja deve enviar avaliações com a chave pública. Para
+            exibir somente o que foi aprovado, consulte o endpoint abaixo.
           </p>
 
           <div
@@ -679,6 +694,8 @@ x-api-key: rc_pub_809cc0f890694489a19fc72ffee99f36</code></pre>
               <div style="text-align: right">
                 <button
                   class="btn-primary"
+                  type="button"
+                  disabled
                   style="
                     background: #7c3aed;
                     color: #fff;
@@ -691,12 +708,8 @@ x-api-key: rc_pub_809cc0f890694489a19fc72ffee99f36</code></pre>
                   "
                   onmouseover="this.style.background = '#6d28d9'"
                   onmouseout="this.style.background = '#7c3aed'"
-                  (click)="
-                    enviarAvaliacaoTeste(testNota.value, testComentario.value);
-                    testComentario.value = ''
-                  "
                 >
-                  Disparar Ingestão Simulada
+                  Use a API pública para enviar uma avaliação
                 </button>
               </div>
             </div>
