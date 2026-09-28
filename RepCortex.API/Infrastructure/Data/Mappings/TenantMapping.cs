@@ -15,6 +15,7 @@ public class TenantMapping : IEntityTypeConfiguration<Tenant>
         builder.Property(t => t.PublishableKey).IsRequired().HasMaxLength(100);
         builder.Property(t => t.SecretKey).IsRequired().HasMaxLength(100);
         builder.Property(t => t.DominiosAutorizados).IsRequired().HasMaxLength(500);
+        builder.Property(t => t.PoliticaModeracao).HasConversion<string>().HasMaxLength(30).IsRequired();
 
         builder.HasIndex(t => t.PublishableKey).IsUnique();
         builder.HasIndex(t => t.SecretKey).IsUnique();
