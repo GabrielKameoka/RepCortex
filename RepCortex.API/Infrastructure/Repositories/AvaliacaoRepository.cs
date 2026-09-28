@@ -29,6 +29,25 @@ public class AvaliacaoRepository : IAvaliacaoRepository
             .ToListAsync();
     }
 
+    public async Task<(IReadOnlyList<Avaliacao> Itens, int Total)> ObterPublicadasAsync(
+        string tenantId, string produtoId, int pagina, int tamanhoPagina)
+    {
+        var query = _context.Avaliacoes
+            .Where(a => a.TenantId == tenantId &&
+                        a.ProdutoId == produtoId &&
+                        a.Status == Domain.Entities.Enums.StatusAvaliacao.Aprovada)
+            .AsNoTracking()
+            .OrderByDescending(a => a.DataCriacao);
+
+        var total = await query.CountAsync();
+        var itens = await query
+            .Skip((pagina - 1) * tamanhoPagina)
+            .Take(tamanhoPagina)
+            .ToListAsync();
+
+        return (itens, total);
+    }
+
     public async Task<Avaliacao?> ObterPorIdAsync(Guid id)
     {
         return await _context.Avaliacoes.FindAsync(id);

@@ -9,6 +9,8 @@ public interface IAvaliacaoRepository
 {
     Task AdicionarAsync(Avaliacao avaliacao);
     Task<IEnumerable<Avaliacao>> ObterTodosAsync(string tenantId);
+    Task<(IReadOnlyList<Avaliacao> Itens, int Total)> ObterPublicadasAsync(
+        string tenantId, string produtoId, int pagina, int tamanhoPagina);
     Task<Avaliacao?> ObterPorIdAsync(Guid id);
     Task AtualizarAsync(Avaliacao avaliacao);
 

@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using RepCortex.Domain.Entities.Enums;
 
 namespace RepCortex.Domain.Entities;
 
@@ -19,6 +20,7 @@ public class Tenant
     public string DominiosAutorizados { get; private set; }
     [JsonInclude]
     public bool Ativo { get; private set; }
+    public PoliticaModeracao PoliticaModeracao { get; private set; }
     [JsonInclude]
     public DateTime DataCriacao { get; private set; } = DateTime.UtcNow;
 
@@ -30,6 +32,7 @@ public class Tenant
         PublishableKey = string.Empty;
         SecretKey = string.Empty;
         DominiosAutorizados = string.Empty;
+        PoliticaModeracao = PoliticaModeracao.Automatica;
     }
 
     public Tenant(string id, string nomeComercial, string? dominiosAutorizados = null)
@@ -45,8 +48,14 @@ public class Tenant
         SecretKey = "rc_sec_" + Guid.NewGuid().ToString("N");
         DominiosAutorizados = dominiosAutorizados ?? "localhost";
         Ativo = true;
+        PoliticaModeracao = PoliticaModeracao.Automatica;
     }
 
     public void Desativar() => Ativo = false;
     public void Ativar() => Ativo = true;
+
+    public void DefinirPoliticaModeracao(PoliticaModeracao politica)
+    {
+        PoliticaModeracao = politica;
+    }
 }

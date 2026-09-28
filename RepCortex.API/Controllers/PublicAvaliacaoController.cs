@@ -9,8 +9,8 @@ namespace RepCortex.API.Controllers;
 
 [ApiController]
 [Route("api/public/avaliacoes")]
-[Authorize(Policy = AuthPolicies.PublicIngestOnly)]
-[EnableRateLimiting("PublicWidgetPolicy")]
+[Authorize(Policy = AuthPolicies.PublicIngestOnly)] // Reativado: Exige X-Api-Key válida
+[EnableRateLimiting("PublicWidgetPolicy")]          // Reativado: Ativa a proteção do Redis contra spam
 public class PublicAvaliacaoController : ControllerBase
 {
     private readonly AvaliacaoService _avaliacaoService;
@@ -35,5 +35,26 @@ public class PublicAvaliacaoController : ControllerBase
             avaliacao.Sentimento,
             avaliacao.DataCriacao
         });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ObterAprovadas(
+        [FromQuery] string produtoId,
+        [FromQuery] int pagina = 1,
+        [FromQuery] int tamanhoPagina = 20)
+    {
+        if (string.IsNullOrWhiteSpace(produtoId))
+            return BadRequest(new { mensagem = "O produtoId é obrigatório." });
+
+        try
+        {
+            var resultado = await _avaliacaoService.ObterPublicadasAsync(
+                produtoId, pagina, tamanhoPagina);
+            return Ok(resultado);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { mensagem = ex.Message });
+        }
     }
 }

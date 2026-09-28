@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using RepCortex.API.Hubs;
 using RepCortex.Application.UseCases;
 using RepCortex.Domain.Interfaces.Service;
 using RepCortex.Infrastructure.Data;
@@ -13,7 +14,9 @@ using RepCortex.Domain.Interfaces.Repository;
 using RepCortex.Infrastructure.Identity;
 using RepCortex.Infrastructure.Security;
 using Scalar.AspNetCore;
+
 DotNetEnv.Env.Load(); // Carrega o arquivo .env para o ambiente antes de subir a API
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,31 +25,38 @@ var jwtSecret = builder.Configuration["Jwt:Secret"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
 
-if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Contains("SUA_CHAVE_JWT"))
+// Validação limpa
+if (string.IsNullOrWhiteSpace(jwtSecret))
 {
-    throw new InvalidOperationException("Configure a variável de ambiente 'Jwt__Secret' com uma chave JWT válida antes de inicializar a API.");
+    throw new InvalidOperationException(
+        "Configure a variável de ambiente 'Jwt__Secret' com uma chave JWT válida antes de inicializar a API.");
+}
+if (string.IsNullOrWhiteSpace(jwtIssuer))
+{
+    throw new InvalidOperationException(
+        "Configure a variável de ambiente 'Jwt__Issuer' com um emissor JWT válido antes de inicializar a API.");
+}
+if (string.IsNullOrWhiteSpace(jwtAudience))
+{
+    throw new InvalidOperationException(
+        "Configure a variável de ambiente 'Jwt__Audience' com uma audience JWT válida antes de inicializar a API.");
 }
 
-if (string.IsNullOrWhiteSpace(jwtIssuer) || jwtIssuer.Contains("SUA_ISSUER_JWT"))
+if (string.IsNullOrWhiteSpace(connectionString))
 {
-    throw new InvalidOperationException("Configure a variável de ambiente 'Jwt__Issuer' com um emissor JWT válido antes de inicializar a API.");
-}
-
-if (string.IsNullOrWhiteSpace(jwtAudience) || jwtAudience.Contains("SUA_AUDIENCE_JWT"))
-{
-    throw new InvalidOperationException("Configure a variável de ambiente 'Jwt__Audience' com uma audience JWT válida antes de inicializar a API.");
+    throw new InvalidOperationException(
+        "Configure a ConnectionStrings__DefaultConnection válida antes de inicializar a API.");
 }
 
 builder.Services.AddIdentityCore<UsuarioIdentity>(options =>
     {
-        // Aqui você pode customizar regras de senha se quiser (exemplo):
         options.Password.RequireDigit = false;
         options.Password.RequireLowercase = false;
         options.Password.RequireNonAlphanumeric = false;
         options.Password.RequireUppercase = false;
-        options.Password.RequiredLength = 6;
+        options.Password.RequiredLength = 8;
     })
-    .AddEntityFrameworkStores<AppDbContext>(); // Diz para o Identity salvar os dados no seu contexto do EF Core
+    .AddEntityFrameworkStores<AppDbContext>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -64,7 +74,9 @@ builder.Services.AddScoped<IAvaliacaoRepository, AvaliacaoRepository>();
 builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 
 // --- Serviços de Infraestrutura ---
-builder.Services.AddSingleton<IAnaliseSentimentoService, AnaliseSentimentoService>(); // Mantido Singleton para carregar o modelo ML.NET uma única vez na memória
+builder.Services
+    .AddSingleton<IAnaliseSentimentoService,
+        AnaliseSentimentoService>(); // Mantido Singleton para carregar o modelo ML.NET uma única vez na memória
 builder.Services.AddScoped<IIdentityService, IdentityService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 
@@ -97,6 +109,22 @@ builder.Services
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(2),
             NameClaimType = ClaimTypes.Name
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+
+                // Verifica se a requisição está indo em direção ao seu Hub mapeado
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/dashboard"))
+                {
+                    // Injeta o token recuperado da URL diretamente no contexto da requisição
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
         };
     })
     .AddScheme<TenantApiKeyAuthenticationOptions, TenantApiKeyAuthenticationHandler>(
@@ -140,7 +168,8 @@ builder.Services.AddRateLimiter(options =>
         context.HttpContext.Response.ContentType = "application/json";
         var respostaErro = new
         {
-            mensagem = "Muitas requisições enviadas. Limite de taxa excedido para o seu Tenant/IP. Tente novamente em breve."
+            mensagem =
+                "Muitas requisições enviadas. Limite de taxa excedido para o seu Tenant/IP. Tente novamente em breve."
         };
         await context.HttpContext.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(respostaErro), token);
     };
@@ -174,30 +203,77 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
-builder.Services.AddControllers();
-builder.Services.AddOpenApi();
+builder.Services.AddControllers()
+    .AddJsonOptions(options => { options.JsonSerializerOptions.PropertyNameCaseInsensitive = true; });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddSignalR();
+
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? ["http://localhost:4200", "http://127.0.0.1:4200"];
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, context, cancellationToken) =>
+    {
+        var publicUrl = builder.Configuration["OpenApi:PublicUrl"];
+        if (!string.IsNullOrWhiteSpace(publicUrl))
+            document.Servers = [new() { Url = publicUrl }];
+        return Task.CompletedTask;
+    });
+});
 
 var app = builder.Build();
 
 app.UseRouting();
+app.UseCors("AllowFrontend");
 
-if (app.Environment.IsDevelopment())
+app.MapOpenApi();
+app.MapScalarApiReference(options =>
 {
-    app.MapOpenApi();
-    app.MapScalarApiReference(options =>
-    {
-        options.Title = "RepCortex API";
-        options.Theme = ScalarTheme.Purple;
-        options.OpenApiRoutePattern = "/openapi/v1.json";
-    });
+    options.Title = "RepCortex API";
+    options.Theme = ScalarTheme.Purple;
+    // Usando o padrão relativo nativo do .NET 9
+    options.OpenApiRoutePattern = "/openapi/v1.json"; 
+});
+
+app.UseAuthentication();
+app.UseMiddleware<RepCortex.Infrastructure.Middlewares.TenantMiddleware>();
+app.UseRateLimiter();
+app.UseAuthorization();
+
+
+app.MapControllers();
+app.MapHub<DashboardHub>("/hubs/dashboard");
+
+var applyMigrations = app.Environment.IsDevelopment() ||
+                      builder.Configuration.GetValue<bool>("Database:ApplyMigrations");
+
+if (applyMigrations)
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await dbContext.Database.MigrateAsync();
 }
 
-app.UseAuthentication(); // 1. Decodifica o JWT ou valida a API Key e monta o context.User
-app.UseMiddleware<RepCortex.Infrastructure.Middlewares.TenantMiddleware>(); // 2. Captura as Claims do User e define o TenantId global
-app.UseRateLimiter();    // 2.5 Limitador de taxa baseado no Tenant autenticado
-app.UseAuthorization();  // 3. Valida se a política (Admin, Public, Secret) bate com o endpoint
-app.MapControllers();
+if (builder.Configuration.GetValue<bool>("Demo:SeedData"))
+{
+    using var scope = app.Services.CreateScope();
+    await RepCortex.Infrastructure.Seeding.DemoSeeder.SeedAsync(
+        scope.ServiceProvider,
+        app.Logger,
+        app.Lifetime.ApplicationStopping);
+}
 
 app.Run();

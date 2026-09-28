@@ -21,3 +21,8 @@ appsettings.Local.json
 # Arquivos de usuário do Rider ou Visual Studio
 *.suo
 *.user.env
+
+# Angular / Node
+**/RepCortex.Dashboard/node_modules/
+**/RepCortex.Dashboard/.angular/
+**/RepCortex.Dashboard/dist/

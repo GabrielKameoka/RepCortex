@@ -39,6 +39,20 @@ public class TenantRepository : ITenantRepository
         return await _context.Tenants.AnyAsync(t => t.Id == id.ToLower().Trim());
     }
 
+    public async Task<Tenant?> ObterPorIdAsync(string id)
+    {
+        return await _context.Tenants.FirstOrDefaultAsync(t => t.Id == id);
+    }
+
+    public async Task AtualizarAsync(Tenant tenant)
+    {
+        _context.Tenants.Update(tenant);
+        await _context.SaveChangesAsync();
+
+        await _cache.RemoveAsync($"tenant:pubkey:{tenant.PublishableKey}");
+        await _cache.RemoveAsync($"tenant:seckey:{tenant.SecretKey}");
+    }
+
     public async Task<Tenant?> ObterPorPublishableKeyAsync(string publishableKey)
     {
         var cacheKey = $"tenant:pubkey:{publishableKey}";
@@ -56,7 +70,9 @@ public class TenantRepository : ITenantRepository
             }
         }
 
-        var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.PublishableKey == publishableKey);
+        var tenant = await _context.Tenants
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(t => t.PublishableKey == publishableKey);
         if (tenant != null)
         {
             var options = new DistributedCacheEntryOptions
@@ -86,7 +102,9 @@ public class TenantRepository : ITenantRepository
             }
         }
 
-        var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.SecretKey == secretKey);
+        var tenant = await _context.Tenants
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(t => t.SecretKey == secretKey);
         if (tenant != null)
         {
             var options = new DistributedCacheEntryOptions

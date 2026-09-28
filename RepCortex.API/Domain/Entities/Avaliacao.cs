@@ -19,6 +19,7 @@ public class Avaliacao : ITenantEntity
     public DateTime DataCriacao { get; private set; } = DateTime.UtcNow;
     public StatusAvaliacao Status { get; private set; } = StatusAvaliacao.Pendente;
     public SentimentoAvaliacao Sentimento { get; private set; } = SentimentoAvaliacao.NaoAnalisado;
+    public string? Resposta { get; private set; }
     public string TenantId { get; private set; }
     public virtual Tenant Tenant { get; private set; }
 
@@ -26,7 +27,8 @@ public class Avaliacao : ITenantEntity
     /// Construtor principal que executa validações de negócio e define o status inicial via IA.
     /// </summary>
     public Avaliacao(string tenantId, string clienteId, string usuarioIdExterno, string produtoId, int nota,
-        string comentario, string ipOrigem, string fingerprint, SentimentoAvaliacao sentimento)
+        string comentario, string ipOrigem, string fingerprint, SentimentoAvaliacao sentimento,
+        PoliticaModeracao politicaModeracao = PoliticaModeracao.Automatica)
     {
         if (string.IsNullOrWhiteSpace(tenantId))
             throw new ArgumentException("O TenantId é obrigatório.");
@@ -36,6 +38,12 @@ public class Avaliacao : ITenantEntity
 
         if (string.IsNullOrWhiteSpace(clienteId) || string.IsNullOrWhiteSpace(usuarioIdExterno))
             throw new ArgumentException("Identificadores inválidos.");
+
+        if (string.IsNullOrWhiteSpace(produtoId))
+            throw new ArgumentException("O produto é obrigatório.");
+
+        if (string.IsNullOrWhiteSpace(comentario))
+            throw new ArgumentException("O comentário é obrigatório.");
 
         TenantId = tenantId;
         ClienteId = clienteId;
@@ -47,14 +55,20 @@ public class Avaliacao : ITenantEntity
         Fingerprint = fingerprint;
         Sentimento = sentimento;
 
-        Status = DefinirStatusInicial(nota, sentimento);
+        Status = DefinirStatusInicial(nota, sentimento, politicaModeracao);
     }
 
     /// <summary>
     /// Regras de moderação automática: Nota 5 + Positivo aprova direto; demais casos retêm para revisão.
     /// </summary>
-    private StatusAvaliacao DefinirStatusInicial(int nota, SentimentoAvaliacao sentimento)
+    private StatusAvaliacao DefinirStatusInicial(
+        int nota,
+        SentimentoAvaliacao sentimento,
+        PoliticaModeracao politicaModeracao)
     {
+        if (politicaModeracao == PoliticaModeracao.Manual)
+            return StatusAvaliacao.Pendente;
+
         if (nota == 5 && sentimento == SentimentoAvaliacao.Positivo)
             return StatusAvaliacao.Aprovada;
 
@@ -70,4 +84,17 @@ public class Avaliacao : ITenantEntity
     public void Aprovar() => Status = StatusAvaliacao.Aprovada;
 
     public void Rejeitar() => Status = StatusAvaliacao.Rejeitada;
+
+    public void Responder(string resposta)
+    {
+        if (string.IsNullOrWhiteSpace(resposta))
+            throw new ArgumentException("A resposta não pode ser vazia.");
+
+        Resposta = resposta;
+
+        if (Status == StatusAvaliacao.Pendente)
+        {
+            Aprovar();
+        }
+    }
 }
