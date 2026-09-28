@@ -27,7 +27,7 @@ export class LoginComponent {
       nomeComercial: [''],
       nomeCompleto: [''],
       email: ['', [Validators.required, Validators.email]],
-      senha: ['', [Validators.required, Validators.minLength(6)]]
+      senha: ['', [Validators.required, Validators.minLength(8)]]
     });
   }
 

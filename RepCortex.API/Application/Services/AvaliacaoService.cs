@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using RepCortex.Application.DTOs;
+using RepCortex.Application.DTOs.Public;
 using RepCortex.Domain.Entities;
 using RepCortex.Domain.Entities.Enums;
 using RepCortex.Domain.Interfaces.Repository;
@@ -15,47 +16,31 @@ public class AvaliacaoService
     private readonly IAvaliacaoRepository _repository;
     private readonly IAnaliseSentimentoService _sentimentService;
     private readonly ITenantService _tenantService;
+    private readonly ITenantRepository _tenantRepository;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
     public AvaliacaoService(
         IAvaliacaoRepository repository,
         IAnaliseSentimentoService sentimentService,
         ITenantService tenantService,
+        ITenantRepository tenantRepository,
         IHttpContextAccessor httpContextAccessor)
     {
         _repository = repository;
         _sentimentService = sentimentService;
         _tenantService = tenantService;
+        _tenantRepository = tenantRepository;
         _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<Avaliacao> CriarAsync(CriarAvaliacaoRequest request)
     {
-        // Tenta obter pelo Middleware/Header. Se vier nulo ou vazio, usa o do JSON/Request.
         var tenantId = _tenantService.ObterTenantId();
-    
-        if (string.IsNullOrWhiteSpace(tenantId))
-        {
-            tenantId = request.TenantId;
-        }
+        var tenant = await _tenantRepository.ObterPorIdAsync(tenantId)
+            ?? throw new KeyNotFoundException("Tenant não encontrado.");
 
-        // Se mesmo assim for nulo, lança uma exceção amigável antes de quebrar no domínio
-        if (string.IsNullOrWhiteSpace(tenantId))
-        {
-            throw new ArgumentException("Não foi possível identificar o Tenant através do cabeçalho de API ou do corpo da requisição.");
-        }
-
-        // Se o serviço falhar ou estiver vazio no escopo, capture direto das Claims
-        if (string.IsNullOrEmpty(tenantId))
-        {
-            tenantId = _httpContextAccessor.HttpContext?.User?.FindFirstValue("tenant_id") 
-                       ?? _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-        }
-
-        if (string.IsNullOrEmpty(tenantId))
-        {
-            throw new Exception("Não foi possível identificar o Tenant associado a esta requisição.");
-        }
+        var ipOrigem = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString()
+                       ?? "unknown-ip";
 
         // 1. Executa a análise de sentimento da IA (Retorna string)
         string sentimentoString = await _sentimentService.AnalisarSentimentoAsync(request.Comentario);
@@ -75,9 +60,10 @@ public class AvaliacaoService
             request.ProdutoId,
             request.Nota,
             request.Comentario,
-            request.IpOrigem,
+            ipOrigem,
             request.Fingerprint,
-            sentimentoEnum // <-- Agora o tipo bate 100%!
+            sentimentoEnum,
+            tenant.PoliticaModeracao
         );
 
         await _repository.AdicionarAsync(avaliacao);
@@ -88,6 +74,32 @@ public class AvaliacaoService
     {
         var tenantId = _tenantService.ObterTenantId();
         return await _repository.ObterTodosAsync(tenantId);
+    }
+
+    public async Task<ListaAvaliacoesPublicasResponse> ObterPublicadasAsync(
+        string produtoId, int pagina, int tamanhoPagina)
+    {
+        if (pagina < 1)
+            throw new ArgumentException("A página deve ser maior que zero.");
+
+        if (tamanhoPagina is < 1 or > 50)
+            throw new ArgumentException("O tamanho da página deve estar entre 1 e 50.");
+
+        var tenantId = _tenantService.ObterTenantId();
+        var (itens, total) = await _repository.ObterPublicadasAsync(
+            tenantId, produtoId, pagina, tamanhoPagina);
+
+        var resposta = itens
+            .Select(a => new AvaliacaoPublicaResponse(
+                a.Id, a.ProdutoId, a.Nota, a.Comentario, a.Resposta, a.DataCriacao))
+            .ToList();
+
+        return new ListaAvaliacoesPublicasResponse(
+            resposta,
+            pagina,
+            tamanhoPagina,
+            total,
+            (int)Math.Ceiling(total / (double)tamanhoPagina));
     }
 
     public async Task AprovarAsync(Guid id)

@@ -1,9 +1,7 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, effect, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { AuthService } from '../../core/services/auth.service';
-import { environment } from '../../../environment/environment';
 import { Router } from '@angular/router';
 import Chart from 'chart.js/auto';
 
@@ -22,12 +20,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   public abaAtiva = signal<string>('metricas');
   public avaliacoes = signal<any[]>([]);
   public carregandoComentarios = signal<boolean>(false);
+  public politicaModeracao = signal<number | null>(null);
+  public salvandoPolitica = signal<boolean>(false);
 
   constructor(
     public dashboardService: DashboardService,
-    private authService: AuthService,
-    private router: Router,
-    private http: HttpClient
+    public authService: AuthService,
+    private router: Router
   ) {
     effect(() => {
       const dados = this.dashboardService.metricas();
@@ -90,6 +89,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.dashboardService.obtenerMetricasIniciais();
+    this.carregarPoliticaModeracao();
     this.dashboardService.iniciarConexaoRealtime();
   }
 
@@ -100,42 +100,26 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  public enviarAvaliacaoTeste(nota: string, comentario: string): void {
-    if (!comentario.trim()) return;
+  public carregarPoliticaModeracao(): void {
+    this.dashboardService.obterPoliticaModeracao().subscribe({
+      next: resposta => this.politicaModeracao.set(resposta.politica),
+      error: erro => console.error('Erro ao carregar política de moderação:', erro)
+    });
+  }
 
-    const tenantIdDoAdmin = this.obterTenantIdLogado(); 
-  
-  const idAleatorio = Math.floor(Math.random() * 1000000);
+  public alterarPoliticaModeracao(event: Event): void {
+    const politica = Number((event.target as HTMLSelectElement).value);
+    if (![1, 2].includes(politica)) return;
 
-  const payload = {
-    tenantId: tenantIdDoAdmin,
-    clienteId: `cli_sandbox_${idAleatorio}`,
-    usuarioIdExterno: `usr_sandbox_${idAleatorio}`,
-    produtoId: `prod_simulado_${idAleatorio}`, 
-    nota: Number(nota),
-    comentario: comentario,
-    ipOrigem: '127.0.0.1',
-    fingerprint: `sandbox_fingerprint_${idAleatorio}`
-  };
-
-    const publishableKey = 'rc_pub_809cc0f890694489a19fc72ffee99f36';
-
-    const urlBase = environment.apiUrl.endsWith('/api') ? environment.apiUrl : `${environment.apiUrl}/api`;
-
-    this.http.post(`${urlBase}/public/avaliacoes`, payload, {
-      headers: {
-        'x-api-key': publishableKey,
-        'Content-Type': 'application/json'
-      }
-    }).subscribe({
-      next: () => {
-        alert('Avaliação simulada com sucesso! O barramento SignalR deve atualizar a tela em instantes.');
+    this.salvandoPolitica.set(true);
+    this.dashboardService.atualizarPoliticaModeracao(politica).subscribe({
+      next: resposta => {
+        this.politicaModeracao.set(resposta.politica);
+        this.salvandoPolitica.set(false);
       },
-      error: (err) => {
-        console.error('Erro ao simular avaliação no Sandbox:', err);
-        // Exibe a mensagem exata tratada pela Exception da API caso ocorra outra
-        const msgErro = err.error || 'Falha ao enviar simulação.';
-        alert(`Erro: ${msgErro}`);
+      error: erro => {
+        console.error('Erro ao atualizar política de moderação:', erro);
+        this.salvandoPolitica.set(false);
       }
     });
   }
@@ -184,23 +168,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
           }
         }
       });
-    }
-  }
-
-  public obterTenantIdLogado(): string {
-    const token = localStorage.getItem('repcortex_token');
-    if (!token) return 'seu-tenant-slug';
-
-    try {
-      // Quebra as seções do JWT (Header.Payload.Signature) e decodifica a base64 do Payload
-      const payloadBase64 = token.split('.')[1];
-      const payloadDecodificado = JSON.parse(atob(payloadBase64));
-
-      // Retorna a claim configurada na criação do Token no .NET
-      return payloadDecodificado.tenant_id || 'seu-tenant-slug';
-    } catch (e) {
-      console.error('Falha ao parsear credencial de inquilino:', e);
-      return 'seu-tenant-slug';
     }
   }
 

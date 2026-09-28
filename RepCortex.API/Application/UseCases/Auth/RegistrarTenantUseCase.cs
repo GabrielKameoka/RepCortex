@@ -35,8 +35,8 @@ public class RegistrarTenantUseCase
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            // 3. Cria a entidade de domínio do Tenant (Permite localhost e * por padrão em dev)
-            var novoTenant = new Tenant(slugProcessado, request.NomeComercial, "localhost;*");
+            // 3. Cria o Tenant com uma origem local segura até o administrador configurar o domínio real.
+            var novoTenant = new Tenant(slugProcessado, request.NomeComercial, "localhost;127.0.0.1");
 
             // 4. Cria a entidade de domínio do Usuário Administrador
             var usuarioId = Guid.NewGuid().ToString();
