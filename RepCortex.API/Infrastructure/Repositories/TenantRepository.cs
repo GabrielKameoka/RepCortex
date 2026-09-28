@@ -70,7 +70,9 @@ public class TenantRepository : ITenantRepository
             }
         }
 
-        var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.PublishableKey == publishableKey);
+        var tenant = await _context.Tenants
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(t => t.PublishableKey == publishableKey);
         if (tenant != null)
         {
             var options = new DistributedCacheEntryOptions
@@ -100,7 +102,9 @@ public class TenantRepository : ITenantRepository
             }
         }
 
-        var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.SecretKey == secretKey);
+        var tenant = await _context.Tenants
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(t => t.SecretKey == secretKey);
         if (tenant != null)
         {
             var options = new DistributedCacheEntryOptions
