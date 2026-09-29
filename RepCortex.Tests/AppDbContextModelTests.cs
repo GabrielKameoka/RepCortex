@@ -19,5 +19,7 @@ public class AppDbContextModelTests
         using var context = new AppDbContext(options, new TenantService());
 
         context.Model.FindEntityType(typeof(Avaliacao)).Should().NotBeNull();
+        context.Database.GetMigrations()
+            .Should().Contain("20260928000100_AdicionarPoliticaModeracaoAoTenant");
     }
 }
