@@ -21,7 +21,20 @@ public class Avaliacao : ITenantEntity
     public SentimentoAvaliacao Sentimento { get; private set; } = SentimentoAvaliacao.NaoAnalisado;
     public string? Resposta { get; private set; }
     public string TenantId { get; private set; }
-    public virtual Tenant Tenant { get; private set; }
+    public virtual Tenant Tenant { get; private set; } = null!;
+
+    // O EF Core usa este construtor ao materializar avaliações existentes.
+    // A política de moderação é aplicada somente na criação de uma nova avaliação.
+    private Avaliacao()
+    {
+        TenantId = string.Empty;
+        ClienteId = string.Empty;
+        UsuarioIdExterno = string.Empty;
+        ProdutoId = string.Empty;
+        Comentario = string.Empty;
+        IpOrigem = string.Empty;
+        Fingerprint = string.Empty;
+    }
 
     /// <summary>
     /// Construtor principal que executa validações de negócio e define o status inicial via IA.
