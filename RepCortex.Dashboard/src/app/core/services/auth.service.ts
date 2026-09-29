@@ -11,7 +11,7 @@ export interface RegistrarResponse {
   sucesso: boolean;
   mensagem: string;
   tenantId: string;
-  token: string;
+  tokenJWT: string;
   publishableKey: string;
   secretKey: string;
 }
@@ -41,8 +41,8 @@ export class AuthService {
       senha
     }).pipe(
       tap(res => {
-        if (res.sucesso && res.token) {
-          this.definirSessao(res.token);
+        if (res.sucesso && res.tokenJWT) {
+          this.definirSessao(res.tokenJWT);
           if (res.publishableKey) {
             sessionStorage.setItem('repcortex_publishable_key', res.publishableKey);
           }

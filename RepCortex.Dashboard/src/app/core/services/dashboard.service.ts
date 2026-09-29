@@ -29,6 +29,19 @@ export interface PoliticaModeracaoResponse {
   politica: number;
 }
 
+export interface AvaliacaoTesteRequest {
+  clienteId: string;
+  usuarioIdExterno: string;
+  produtoId: string;
+  nota: number;
+  comentario: string;
+  fingerprint: string;
+}
+
+export interface AvaliacaoTesteResponse {
+  status: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -102,5 +115,15 @@ export class DashboardService {
 
   public atualizarPoliticaModeracao(politica: number) {
     return this.http.put<PoliticaModeracaoResponse>(`${environment.apiUrl}/admin/configuracoes/moderacao`, { politica });
+  }
+
+  public obterChavePublica() {
+    return this.http.get<{ publishableKey: string }>(`${environment.apiUrl}/admin/integracao/chave-publica`);
+  }
+
+  public enviarAvaliacaoTeste(chavePublica: string, avaliacao: AvaliacaoTesteRequest) {
+    return this.http.post<AvaliacaoTesteResponse>(`${environment.apiUrl}/public/avaliacoes`, avaliacao, {
+      headers: { 'x-api-key': chavePublica }
+    });
   }
 }

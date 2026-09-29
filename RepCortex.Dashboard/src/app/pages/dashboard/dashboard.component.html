@@ -297,6 +297,7 @@
           <option [value]="2">Manual: tudo aguarda aprovação</option>
         </select>
         <small *ngIf="salvandoPolitica()">Salvando configuração...</small>
+        <small *ngIf="erroPolitica()" role="alert" style="color: #fca5a5">{{ erroPolitica() }}</small>
       </section>
 
       <div
@@ -351,7 +352,7 @@
                 overflow: hidden;
                 text-overflow: ellipsis;
               "
-              >{{ authService.getPublishableKey() || 'Chave disponível após o cadastro' }}</code
+              >{{ chavePublica() || 'Carregando chave pública...' }}</code
             >
           </div>
         </div>
@@ -611,7 +612,7 @@ x-api-key: SUA_CHAVE_PUBLICAVEL</code></pre>
               "
               >3</span
             >
-            Leitura pública de avaliações aprovadas
+            Envie uma avaliação de teste
           </h3>
           <p
             style="
@@ -621,8 +622,8 @@ x-api-key: SUA_CHAVE_PUBLICAVEL</code></pre>
               margin-bottom: 20px;
             "
           >
-            O site da sua loja deve enviar avaliações com a chave pública. Para
-            exibir somente o que foi aprovado, consulte o endpoint abaixo.
+            Este formulário envia uma avaliação real de um produto fictício pelo endpoint público usando
+            a chave do seu tenant. O resultado aparece na aba Comentários.
           </p>
 
           <div
@@ -695,7 +696,8 @@ x-api-key: SUA_CHAVE_PUBLICAVEL</code></pre>
                 <button
                   class="btn-primary"
                   type="button"
-                  disabled
+                  [disabled]="enviandoTeste() || !chavePublica()"
+                  (click)="enviarAvaliacaoTeste(testNota.value, testComentario.value, testComentario)"
                   style="
                     background: #7c3aed;
                     color: #fff;
@@ -709,9 +711,11 @@ x-api-key: SUA_CHAVE_PUBLICAVEL</code></pre>
                   onmouseover="this.style.background = '#6d28d9'"
                   onmouseout="this.style.background = '#7c3aed'"
                 >
-                  Use a API pública para enviar uma avaliação
+                  {{ enviandoTeste() ? 'Enviando...' : 'Enviar avaliação de teste' }}
                 </button>
               </div>
+              <p *ngIf="mensagemTeste()" role="status" style="color: #86efac">{{ mensagemTeste() }}</p>
+              <p *ngIf="erroTeste()" role="alert" style="color: #fca5a5">{{ erroTeste() }}</p>
             </div>
           </div>
         </section>

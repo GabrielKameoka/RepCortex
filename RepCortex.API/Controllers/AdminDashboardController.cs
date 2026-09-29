@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using RepCortex.API.Application.DTOs.Dashboard;
@@ -9,6 +10,7 @@ using RepCortex.Domain.Entities.Enums;
 namespace RepCortex.API.Controllers;
 
 [ApiController]
+[EnableCors(CorsPolicies.Dashboard)]
 [Route("api/admin/dashboard")]
 [Authorize(Policy = AuthPolicies.AdminOnly)]
 public class AdminDashboardController : ControllerBase

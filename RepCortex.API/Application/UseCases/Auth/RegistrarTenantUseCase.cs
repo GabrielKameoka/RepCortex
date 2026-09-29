@@ -11,12 +11,14 @@ public class RegistrarTenantUseCase
 {
     private readonly ITenantRepository _tenantRepository;
     private readonly IIdentityService _identityService;
+    private readonly ITenantService _tenantService;
     private readonly AppDbContext _context;
 
-    public RegistrarTenantUseCase(ITenantRepository tenantRepository, IIdentityService identityService, AppDbContext context)
+    public RegistrarTenantUseCase(ITenantRepository tenantRepository, IIdentityService identityService, ITenantService tenantService, AppDbContext context)
     {
         _tenantRepository = tenantRepository;
         _identityService = identityService;
+        _tenantService = tenantService;
         _context = context;
     }
 
@@ -46,6 +48,7 @@ public class RegistrarTenantUseCase
             await _tenantRepository.AdicionarAsync(novoTenant);
 
             // 6. Delega a criação física e hash de senha para o IdentityService
+            _tenantService.DefinirTenantId(novoTenant.Id);
             var (userSucesso, userErro, _) = await _identityService.RegistrarUsuarioAsync(novoUsuario, request.Senha);
 
             if (!userSucesso)
