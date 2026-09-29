@@ -12,6 +12,9 @@ public class CriarAvaliacaoRequest
     [MaxLength(100)]
     public string UsuarioIdExterno { get; set; } = string.Empty;
 
+    [MaxLength(100)]
+    public string? NomeUsuarioExterno { get; set; }
+
     [Required]
     [MaxLength(100)]
     public string ProdutoId { get; set; } = string.Empty;

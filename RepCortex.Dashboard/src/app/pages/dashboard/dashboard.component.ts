@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, effect, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DashboardService } from '../../core/services/dashboard.service';
+import { AvaliacaoDashboard, DashboardService } from '../../core/services/dashboard.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -19,7 +19,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   // Estado reativo para controlar a navegação interna do Dashboard
   public abaAtiva = signal<string>('metricas');
-  public avaliacoes = signal<any[]>([]);
+  public avaliacoes = signal<AvaliacaoDashboard[]>([]);
   public carregandoComentarios = signal<boolean>(false);
   public politicaModeracao = signal<number | null>(null);
   public salvandoPolitica = signal<boolean>(false);
@@ -140,7 +140,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  public enviarAvaliacaoTeste(notaTexto: string, comentario: string, campoComentario: HTMLTextAreaElement): void {
+  public enviarAvaliacaoTeste(
+    notaTexto: string,
+    comentario: string,
+    nomeUsuarioExterno: string,
+    campoComentario: HTMLTextAreaElement
+  ): void {
     const nota = Number(notaTexto);
     const chave = this.chavePublica();
     this.mensagemTeste.set(null);
@@ -154,12 +159,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.erroTeste.set('Chave pública indisponível. Recarregue a página e tente novamente.');
       return;
     }
+    if (nomeUsuarioExterno.trim().length > 100) {
+      this.erroTeste.set('O nome do autor deve ter até 100 caracteres.');
+      return;
+    }
 
     const id = crypto.randomUUID();
     this.enviandoTeste.set(true);
     this.dashboardService.enviarAvaliacaoTeste(chave, {
       clienteId: `cli_teste_${id}`,
       usuarioIdExterno: `usr_teste_${id}`,
+      nomeUsuarioExterno: nomeUsuarioExterno.trim() || undefined,
       produtoId: 'produto-teste',
       nota,
       comentario: comentario.trim(),

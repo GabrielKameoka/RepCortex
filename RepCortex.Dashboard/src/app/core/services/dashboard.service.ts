@@ -17,6 +17,9 @@ export interface MetricasDashboard {
 export interface AvaliacaoDashboard {
   id: string;
   produtoId: string;
+  clienteId: string;
+  usuarioIdExterno: string;
+  nomeUsuarioExterno: string | null;
   nota: number;
   comentario: string;
   status: string;
@@ -32,6 +35,7 @@ export interface PoliticaModeracaoResponse {
 export interface AvaliacaoTesteRequest {
   clienteId: string;
   usuarioIdExterno: string;
+  nomeUsuarioExterno?: string;
   produtoId: string;
   nota: number;
   comentario: string;

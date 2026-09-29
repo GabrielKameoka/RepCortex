@@ -186,6 +186,10 @@ namespace RepCortex.Infrastructure.Migrations
                     b.Property<int>("Nota")
                         .HasColumnType("integer");
 
+                    b.Property<string>("NomeUsuarioExterno")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("ProdutoId")
                         .IsRequired()
                         .HasMaxLength(100)

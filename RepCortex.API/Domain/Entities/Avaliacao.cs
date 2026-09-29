@@ -11,6 +11,7 @@ public class Avaliacao : ITenantEntity
     public Guid Id { get; private set; } = Guid.NewGuid();
     public string ClienteId { get; private set; }
     public string UsuarioIdExterno { get; private set; }
+    public string? NomeUsuarioExterno { get; private set; }
     public string ProdutoId { get; private set; }
     public int Nota { get; private set; }
     public string Comentario { get; private set; }
@@ -41,7 +42,7 @@ public class Avaliacao : ITenantEntity
     /// </summary>
     public Avaliacao(string tenantId, string clienteId, string usuarioIdExterno, string produtoId, int nota,
         string comentario, string ipOrigem, string fingerprint, SentimentoAvaliacao sentimento,
-        PoliticaModeracao politicaModeracao = PoliticaModeracao.Automatica)
+        PoliticaModeracao politicaModeracao = PoliticaModeracao.Automatica, string? nomeUsuarioExterno = null)
     {
         if (string.IsNullOrWhiteSpace(tenantId))
             throw new ArgumentException("O TenantId é obrigatório.");
@@ -58,9 +59,14 @@ public class Avaliacao : ITenantEntity
         if (string.IsNullOrWhiteSpace(comentario))
             throw new ArgumentException("O comentário é obrigatório.");
 
+        var nomeNormalizado = nomeUsuarioExterno?.Trim();
+        if (nomeNormalizado?.Length > 100)
+            throw new ArgumentException("O nome do usuário externo deve ter até 100 caracteres.");
+
         TenantId = tenantId;
         ClienteId = clienteId;
         UsuarioIdExterno = usuarioIdExterno;
+        NomeUsuarioExterno = string.IsNullOrEmpty(nomeNormalizado) ? null : nomeNormalizado;
         ProdutoId = produtoId;
         Nota = nota;
         Comentario = comentario ?? string.Empty;

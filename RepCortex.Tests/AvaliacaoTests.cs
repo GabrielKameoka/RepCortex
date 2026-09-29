@@ -67,6 +67,44 @@ public class AvaliacaoTests
         avaliacao.Status.Should().Be(StatusAvaliacao.Pendente);
     }
 
+    [Fact]
+    public void Construtor_DeveGuardarNomeExternoNormalizado()
+    {
+        var avaliacao = new Avaliacao(
+            "tenant-01", "cli-1", "usr-1", "prod-1", 5,
+            "Excelente produto", "127.0.0.1", "fingerprint",
+            SentimentoAvaliacao.Positivo, nomeUsuarioExterno: "  Mariana Silva  ");
+
+        avaliacao.NomeUsuarioExterno.Should().Be("Mariana Silva");
+        avaliacao.UsuarioIdExterno.Should().Be("usr-1");
+        avaliacao.ClienteId.Should().Be("cli-1");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("   ")]
+    public void Construtor_DeveAceitarAvaliacaoSemNomeExterno(string? nome)
+    {
+        var avaliacao = new Avaliacao(
+            "tenant-01", "cli-1", "usr-1", "prod-1", 5,
+            "Excelente produto", "127.0.0.1", "fingerprint",
+            SentimentoAvaliacao.Positivo, nomeUsuarioExterno: nome);
+
+        avaliacao.NomeUsuarioExterno.Should().BeNull();
+    }
+
+    [Fact]
+    public void Construtor_DeveRejeitarNomeExternoAcimaDoLimite()
+    {
+        Action criar = () => new Avaliacao(
+            "tenant-01", "cli-1", "usr-1", "prod-1", 5,
+            "Excelente produto", "127.0.0.1", "fingerprint",
+            SentimentoAvaliacao.Positivo, nomeUsuarioExterno: new string('A', 101));
+
+        criar.Should().Throw<ArgumentException>()
+            .WithMessage("O nome do usuário externo deve ter até 100 caracteres.");
+    }
+
     [Theory]
     [InlineData(1)]
     [InlineData(2)]
