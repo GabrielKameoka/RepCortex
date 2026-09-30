@@ -147,16 +147,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     campoComentario: HTMLTextAreaElement
   ): void {
     const nota = Number(notaTexto);
-    const chave = this.chavePublica();
     this.mensagemTeste.set(null);
     this.erroTeste.set(null);
 
     if (!Number.isInteger(nota) || nota < 1 || nota > 5 || !comentario.trim()) {
       this.erroTeste.set('Informe uma nota de 1 a 5 e um comentário.');
-      return;
-    }
-    if (!chave) {
-      this.erroTeste.set('Chave pública indisponível. Recarregue a página e tente novamente.');
       return;
     }
     if (nomeUsuarioExterno.trim().length > 100) {
@@ -166,7 +161,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     const id = crypto.randomUUID();
     this.enviandoTeste.set(true);
-    this.dashboardService.enviarAvaliacaoTeste(chave, {
+    this.dashboardService.enviarAvaliacaoTeste({
       usuarioIdExterno: `usr_teste_${id}`,
       nomeUsuarioExterno: nomeUsuarioExterno.trim() || undefined,
       produtoId: 'produto-teste',

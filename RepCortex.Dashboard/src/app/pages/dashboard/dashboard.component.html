@@ -627,8 +627,9 @@ x-api-key: SUA_CHAVE_PUBLICAVEL</code></pre>
               margin-bottom: 20px;
             "
           >
-            Este formulário envia uma avaliação real de um produto fictício pelo endpoint público usando
-            a chave do seu tenant. O resultado aparece na aba Comentários.
+            Este formulário envia uma avaliação real de um produto fictício usando sua sessão de
+            administrador. O resultado aparece na aba Comentários. A chave pública acima é usada
+            pelo endpoint público, que exige uma origem autorizada para o tenant.
           </p>
 
           <div
@@ -711,7 +712,7 @@ x-api-key: SUA_CHAVE_PUBLICAVEL</code></pre>
                 <button
                   class="btn-primary"
                   type="button"
-                  [disabled]="enviandoTeste() || !chavePublica()"
+                  [disabled]="enviandoTeste()"
                   (click)="enviarAvaliacaoTeste(testNota.value, testComentario.value, testNomeUsuario.value, testComentario)"
                   style="
                     background: #7c3aed;

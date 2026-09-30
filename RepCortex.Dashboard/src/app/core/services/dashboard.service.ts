@@ -123,9 +123,7 @@ export class DashboardService {
     return this.http.get<{ publishableKey: string }>(`${environment.apiUrl}/admin/integracao/chave-publica`);
   }
 
-  public enviarAvaliacaoTeste(chavePublica: string, avaliacao: AvaliacaoTesteRequest) {
-    return this.http.post<AvaliacaoTesteResponse>(`${environment.apiUrl}/public/avaliacoes`, avaliacao, {
-      headers: { 'x-api-key': chavePublica }
-    });
+  public enviarAvaliacaoTeste(avaliacao: AvaliacaoTesteRequest) {
+    return this.http.post<AvaliacaoTesteResponse>(`${environment.apiUrl}/admin/integracao/avaliacoes-teste`, avaliacao);
   }
 }
