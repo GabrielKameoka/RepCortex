@@ -1,0 +1,1 @@
+Construí o RepCortex: avaliações entram pela API, a IA classifica o sentimento em PT-BR e o painel atualiza em tempo real para a equipe moderar e responder.
