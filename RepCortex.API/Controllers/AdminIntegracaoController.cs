@@ -2,6 +2,9 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using RepCortex.Application.DTOs;
+using RepCortex.Application.Services;
 using RepCortex.Domain.Interfaces.Repository;
 using RepCortex.Infrastructure.Security;
 
@@ -14,10 +17,12 @@ namespace RepCortex.API.Controllers;
 public class AdminIntegracaoController : ControllerBase
 {
     private readonly ITenantRepository _tenantRepository;
+    private readonly AvaliacaoService _avaliacaoService;
 
-    public AdminIntegracaoController(ITenantRepository tenantRepository)
+    public AdminIntegracaoController(ITenantRepository tenantRepository, AvaliacaoService avaliacaoService)
     {
         _tenantRepository = tenantRepository;
+        _avaliacaoService = avaliacaoService;
     }
 
     [HttpGet("chave-publica")]
@@ -31,5 +36,23 @@ public class AdminIntegracaoController : ControllerBase
         return tenant is null
             ? NotFound(new { mensagem = "Tenant não encontrado." })
             : Ok(new { tenant.PublishableKey });
+    }
+
+    [HttpPost("avaliacoes-teste")]
+    [EnableRateLimiting("PublicWidgetPolicy")]
+    public async Task<IActionResult> CriarAvaliacaoTeste([FromBody] CriarAvaliacaoRequest request)
+    {
+        var avaliacao = await _avaliacaoService.CriarAsync(request);
+
+        return StatusCode(StatusCodes.Status201Created, new
+        {
+            avaliacao.Id,
+            avaliacao.ProdutoId,
+            avaliacao.Nota,
+            avaliacao.Comentario,
+            Status = avaliacao.Status.ToString(),
+            avaliacao.Sentimento,
+            avaliacao.DataCriacao
+        });
     }
 }
