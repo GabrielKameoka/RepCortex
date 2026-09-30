@@ -24,9 +24,12 @@ public class AppDbContextModelTests
         nomeExterno.Should().NotBeNull();
         nomeExterno!.IsNullable.Should().BeTrue();
         nomeExterno.GetMaxLength().Should().Be(100);
+        avaliacao.FindProperty(nameof(Avaliacao.ClienteId))!.IsNullable.Should().BeTrue();
         context.Database.GetMigrations()
             .Should().Contain("20260928000100_AdicionarPoliticaModeracaoAoTenant");
         context.Database.GetMigrations()
             .Should().Contain("20260929000100_AdicionarNomeUsuarioExternoAvaliacao");
+        context.Database.GetMigrations()
+            .Should().Contain("20260930000100_TornarClienteIdLegadoOpcional");
     }
 }

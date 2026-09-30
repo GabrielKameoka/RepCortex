@@ -28,7 +28,6 @@ public class AdminAvaliacaoController : ControllerBase
         {
             a.Id,
             a.ProdutoId,
-            a.ClienteId,
             a.UsuarioIdExterno,
             a.NomeUsuarioExterno,
             a.Nota,

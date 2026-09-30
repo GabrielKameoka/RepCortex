@@ -53,7 +53,6 @@ X-Api-Key: {{publishableKey}}
 Content-Type: application/json
 
 {
-  "clienteId": "cli-12345",
   "usuarioIdExterno": "usr_999",
   "nomeUsuarioExterno": "Mariana",
   "produtoId": "prod-777",
@@ -75,7 +74,6 @@ X-Api-Key: {{publishableKey}}
 Content-Type: application/json
 
 {
-  "clienteId": "cli-12345",
   "usuarioIdExterno": "usr_999",
   "produtoId": "prod-888",
   "nota": 5,
@@ -95,7 +93,6 @@ X-Api-Key: {{publishableKey}}
 Content-Type: application/json
 
 {
-  "clienteId": "cli-12345",
   "usuarioIdExterno": "usr_999",
   "produtoId": "prod-999",
   "nota": 1,

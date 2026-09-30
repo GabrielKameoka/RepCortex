@@ -116,9 +116,8 @@
                     <span class="product-id">{{ avaliacao.produtoId }}</span>
                   </td>
                   <td class="external-author-cell">
-                    <strong>{{ avaliacao.nomeUsuarioExterno || avaliacao.usuarioIdExterno }}</strong>
-                    <small>Usuário: {{ avaliacao.usuarioIdExterno }}</small>
-                    <small>Cliente: {{ avaliacao.clienteId }}</small>
+                    <strong>{{ avaliacao.nomeUsuarioExterno || 'Nome não informado' }}</strong>
+                    <small>ID do autor: {{ avaliacao.usuarioIdExterno }}</small>
                   </td>
                   <td>
                     <span class="rating-badge">⭐ {{ avaliacao.nota }}</span>
@@ -588,8 +587,7 @@ x-api-key: SUA_CHAVE_PUBLICAVEL</code></pre>
               overflow-x: auto;
             "
           ><code style="color: #34d399; font-family: monospace; font-size: 0.85rem; line-height: 1.5;">{{ '{' }}
-  "clienteId": "cli_982341",        // ID único do comprador no seu banco
-  "usuarioIdExterno": "usr_7721",   // Identificador público do usuário
+  "usuarioIdExterno": "usr_7721",   // ID do autor na sua loja
   "nomeUsuarioExterno": "Mariana", // Nome de exibição opcional
   "produtoId": "slug-produto-123",  // SKU ou Slug identificador do produto
   "nota": 5,                        // Inteiro de 1 a 5

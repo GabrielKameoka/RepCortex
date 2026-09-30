@@ -6,10 +6,6 @@ public class CriarAvaliacaoRequest
 {
     [Required]
     [MaxLength(100)]
-    public string ClienteId { get; set; } = string.Empty;
-
-    [Required]
-    [MaxLength(100)]
     public string UsuarioIdExterno { get; set; } = string.Empty;
 
     [MaxLength(100)]

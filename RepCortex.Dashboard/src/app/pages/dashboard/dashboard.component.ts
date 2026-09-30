@@ -167,7 +167,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const id = crypto.randomUUID();
     this.enviandoTeste.set(true);
     this.dashboardService.enviarAvaliacaoTeste(chave, {
-      clienteId: `cli_teste_${id}`,
       usuarioIdExterno: `usr_teste_${id}`,
       nomeUsuarioExterno: nomeUsuarioExterno.trim() || undefined,
       produtoId: 'produto-teste',

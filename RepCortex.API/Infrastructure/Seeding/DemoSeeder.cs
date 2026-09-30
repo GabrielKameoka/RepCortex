@@ -73,18 +73,18 @@ public static class DemoSeeder
         {
             var reviews = new List<Avaliacao>
             {
-                new(tenant.Id, "cli_1", "usr_1", "prod_celular", 5,
+                new(tenant.Id, "usr_1", "prod_celular", 5,
                     "Sensacional! O celular é extremamente rápido e a bateria dura dois dias inteiros. Recomendo demais!",
-                    "127.0.0.1", "demo-fp-1", SentimentoAvaliacao.Positivo),
-                new(tenant.Id, "cli_2", "usr_2", "prod_fone", 4,
+                    "127.0.0.1", "demo-fp-1", SentimentoAvaliacao.Positivo, nomeUsuarioExterno: "Mariana"),
+                new(tenant.Id, "usr_2", "prod_fone", 4,
                     "Muito bom, material de ótima qualidade e som limpo, mas demorou um pouco para chegar.",
-                    "127.0.0.1", "demo-fp-2", SentimentoAvaliacao.Positivo),
-                new(tenant.Id, "cli_3", "usr_3", "prod_relogio", 3,
+                    "127.0.0.1", "demo-fp-2", SentimentoAvaliacao.Positivo, nomeUsuarioExterno: "Lucas"),
+                new(tenant.Id, "usr_3", "prod_relogio", 3,
                     "É ok, bonito, mas as funções são meio básicas. Pelo preço, vale a pena.",
-                    "127.0.0.1", "demo-fp-3", SentimentoAvaliacao.Neutro),
-                new(tenant.Id, "cli_4", "usr_4", "prod_capinha", 1,
+                    "127.0.0.1", "demo-fp-3", SentimentoAvaliacao.Neutro, nomeUsuarioExterno: "Camila"),
+                new(tenant.Id, "usr_4", "prod_capinha", 1,
                     "Péssimo produto! Quebrou no primeiro dia de uso e o atendimento foi horrível.",
-                    "127.0.0.1", "demo-fp-4", SentimentoAvaliacao.Negativo)
+                    "127.0.0.1", "demo-fp-4", SentimentoAvaliacao.Negativo, nomeUsuarioExterno: "Rafael")
             };
 
             await db.Avaliacoes.AddRangeAsync(reviews, cancellationToken);

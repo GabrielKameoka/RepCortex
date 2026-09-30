@@ -13,7 +13,7 @@ public class AvaliacaoMapping : IEntityTypeConfiguration<Avaliacao>
 
         builder.Property(a => a.ProdutoId).IsRequired().HasMaxLength(100);
         builder.Property(a => a.Comentario).HasMaxLength(2000);
-        builder.Property(a => a.ClienteId).IsRequired().HasMaxLength(100);
+        builder.Property(a => a.ClienteId).HasMaxLength(100);
         builder.Property(a => a.UsuarioIdExterno).IsRequired().HasMaxLength(100);
         builder.Property(a => a.NomeUsuarioExterno).HasMaxLength(100);
         builder.Property(a => a.IpOrigem).HasMaxLength(45);
