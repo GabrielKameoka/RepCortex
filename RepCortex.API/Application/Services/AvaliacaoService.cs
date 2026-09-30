@@ -55,7 +55,6 @@ public class AvaliacaoService
         // 3. Instancia a entidade passando o Enum convertido perfeitamente
         var avaliacao = new Avaliacao(
             tenantId, 
-            request.ClienteId,
             request.UsuarioIdExterno,
             request.ProdutoId,
             request.Nota,
@@ -63,7 +62,8 @@ public class AvaliacaoService
             ipOrigem,
             request.Fingerprint,
             sentimentoEnum,
-            tenant.PoliticaModeracao
+            tenant.PoliticaModeracao,
+            request.NomeUsuarioExterno
         );
 
         await _repository.AdicionarAsync(avaliacao);

@@ -1,13 +1,16 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using RepCortex.Application.DTOs.Auth;
 using RepCortex.Application.UseCases.Auth;
 using RepCortex.Domain.Interfaces.Service;
+using RepCortex.Infrastructure.Security;
 
 namespace RepCortex.API.Controllers;
 
 [ApiController]
+[EnableCors(CorsPolicies.Dashboard)]
 [Route("api/auth")]
 [AllowAnonymous] // Mantido: Permite registrar e logar publicamente para gerar as credenciais
 public class AuthController : ControllerBase

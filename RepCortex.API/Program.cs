@@ -31,11 +31,13 @@ if (string.IsNullOrWhiteSpace(jwtSecret))
     throw new InvalidOperationException(
         "Configure a variável de ambiente 'Jwt__Secret' com uma chave JWT válida antes de inicializar a API.");
 }
+
 if (string.IsNullOrWhiteSpace(jwtIssuer))
 {
     throw new InvalidOperationException(
         "Configure a variável de ambiente 'Jwt__Issuer' com um emissor JWT válido antes de inicializar a API.");
 }
+
 if (string.IsNullOrWhiteSpace(jwtAudience))
 {
     throw new InvalidOperationException(
@@ -123,6 +125,7 @@ builder.Services
                     // Injeta o token recuperado da URL diretamente no contexto da requisição
                     context.Token = accessToken;
                 }
+
                 return Task.CompletedTask;
             }
         };
@@ -210,24 +213,19 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddSignalR();
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-    ?? ["http://localhost:4200", "http://127.0.0.1:4200"];
-var allowAnyOrigin = builder.Configuration.GetValue("Cors:AllowAnyOrigin", true);
+                     ?? ["http://localhost:4200", "http://127.0.0.1:4200"];
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
-    {
-        if (allowAnyOrigin)
-        {
-            policy.AllowAnyOrigin();
-        }
-        else
-        {
-            policy.WithOrigins(allowedOrigins);
-        }
-
-        policy.AllowAnyHeader().AllowAnyMethod();
-    });
+    options.AddPolicy(CorsPolicies.Dashboard, policy => policy
+        .WithOrigins(allowedOrigins)
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials());
+    options.AddPolicy(CorsPolicies.PublicApi, policy => policy
+        .AllowAnyOrigin()
+        .AllowAnyHeader()
+        .AllowAnyMethod());
 });
 
 builder.Services.AddOpenApi(options =>
@@ -244,7 +242,7 @@ builder.Services.AddOpenApi(options =>
 var app = builder.Build();
 
 app.UseRouting();
-app.UseCors("AllowFrontend");
+app.UseCors();
 
 app.MapOpenApi();
 app.MapScalarApiReference(options =>
@@ -252,17 +250,17 @@ app.MapScalarApiReference(options =>
     options.Title = "RepCortex API";
     options.Theme = ScalarTheme.Purple;
     // Usando o padrão relativo nativo do .NET 9
-    options.OpenApiRoutePattern = "/openapi/v1.json"; 
+    options.OpenApiRoutePattern = "/openapi/v1.json";
 });
 
 app.UseAuthentication();
-app.UseMiddleware<RepCortex.Infrastructure.Middlewares.TenantMiddleware>();
-app.UseRateLimiter();
 app.UseAuthorization();
+app.UseRateLimiter();
+app.UseMiddleware<RepCortex.Infrastructure.Middlewares.TenantMiddleware>();
 
 
 app.MapControllers();
-app.MapHub<DashboardHub>("/hubs/dashboard");
+app.MapHub<DashboardHub>("/hubs/dashboard").RequireCors(CorsPolicies.Dashboard);
 
 var applyMigrations = app.Environment.IsDevelopment() ||
                       builder.Configuration.GetValue<bool>("Database:ApplyMigrations");

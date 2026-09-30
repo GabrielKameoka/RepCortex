@@ -9,12 +9,21 @@ decide o que aparece na página do produto.
 
 1. O lojista cria seu espaço e recebe uma `publishableKey` uma única vez.
 2. O site envia avaliações para `POST /api/public/avaliacoes` usando `x-api-key`.
+   Deve informar `usuarioIdExterno` (ID do autor na loja) e pode informar
+   `nomeUsuarioExterno` (nome de exibição, até 100 caracteres).
 3. O tenant é identificado pela chave; `tenantId` e IP não vêm do cliente.
 4. A política automática aprova somente nota 5 com sentimento positivo. A
    política manual mantém toda avaliação como pendente.
 5. O site consulta apenas aprovadas em
    `GET /api/public/avaliacoes?produtoId=...&pagina=1&tamanhoPagina=20`.
 6. O lojista usa JWT no dashboard para moderar e acompanhar métricas.
+   Em cada avaliação ele vê o nome informado pela loja e o ID do autor;
+   avaliações antigas ou sem nome mostram `Nome não informado` junto do ID.
+
+O RepCortex não busca o perfil do comprador na loja: o nome é uma cópia do valor
+enviado no momento da avaliação. `ClienteId` permanece apenas como coluna
+histórica, sem fazer parte dos novos envios. A listagem pública de avaliações
+aprovadas não inclui nome nem ID do autor.
 
 ## Arquitetura
 

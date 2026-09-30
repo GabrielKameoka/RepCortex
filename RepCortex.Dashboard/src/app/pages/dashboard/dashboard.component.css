@@ -392,6 +392,24 @@
   color: #a78bfa;
 }
 
+.external-author-cell {
+  min-width: 180px;
+  max-width: 260px;
+}
+
+.external-author-cell strong,
+.external-author-cell small {
+  display: block;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.external-author-cell small {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  margin-top: 0.2rem;
+}
+
 .rating-badge {
   background-color: rgba(245, 158, 11, 0.1);
   color: #f59e0b;

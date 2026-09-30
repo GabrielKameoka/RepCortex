@@ -161,7 +161,6 @@ namespace RepCortex.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("ClienteId")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
@@ -185,6 +184,10 @@ namespace RepCortex.Infrastructure.Migrations
 
                     b.Property<int>("Nota")
                         .HasColumnType("integer");
+
+                    b.Property<string>("NomeUsuarioExterno")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("ProdutoId")
                         .IsRequired()

@@ -99,6 +99,7 @@
                 <tr>
                   <th>Data</th>
                   <th>Produto</th>
+                  <th>Autor externo</th>
                   <th>Nota</th>
                   <th>Comentário</th>
                   <th>IA Sentimento</th>
@@ -113,6 +114,10 @@
                   </td>
                   <td>
                     <span class="product-id">{{ avaliacao.produtoId }}</span>
+                  </td>
+                  <td class="external-author-cell">
+                    <strong>{{ avaliacao.nomeUsuarioExterno || 'Nome não informado' }}</strong>
+                    <small>ID do autor: {{ avaliacao.usuarioIdExterno }}</small>
                   </td>
                   <td>
                     <span class="rating-badge">⭐ {{ avaliacao.nota }}</span>
@@ -297,6 +302,7 @@
           <option [value]="2">Manual: tudo aguarda aprovação</option>
         </select>
         <small *ngIf="salvandoPolitica()">Salvando configuração...</small>
+        <small *ngIf="erroPolitica()" role="alert" style="color: #fca5a5">{{ erroPolitica() }}</small>
       </section>
 
       <div
@@ -351,7 +357,7 @@
                 overflow: hidden;
                 text-overflow: ellipsis;
               "
-              >{{ authService.getPublishableKey() || 'Chave disponível após o cadastro' }}</code
+              >{{ chavePublica() || 'Carregando chave pública...' }}</code
             >
           </div>
         </div>
@@ -581,8 +587,8 @@ x-api-key: SUA_CHAVE_PUBLICAVEL</code></pre>
               overflow-x: auto;
             "
           ><code style="color: #34d399; font-family: monospace; font-size: 0.85rem; line-height: 1.5;">{{ '{' }}
-  "clienteId": "cli_982341",        // ID único do comprador no seu banco
-  "usuarioIdExterno": "usr_7721",   // Identificador público do usuário
+  "usuarioIdExterno": "usr_7721",   // ID do autor na sua loja
+  "nomeUsuarioExterno": "Mariana", // Nome de exibição opcional
   "produtoId": "slug-produto-123",  // SKU ou Slug identificador do produto
   "nota": 5,                        // Inteiro de 1 a 5
   "comentario": "Excelente qualidade, a IA detectará sentimento positivo!",
@@ -611,7 +617,7 @@ x-api-key: SUA_CHAVE_PUBLICAVEL</code></pre>
               "
               >3</span
             >
-            Leitura pública de avaliações aprovadas
+            Envie uma avaliação de teste
           </h3>
           <p
             style="
@@ -621,8 +627,8 @@ x-api-key: SUA_CHAVE_PUBLICAVEL</code></pre>
               margin-bottom: 20px;
             "
           >
-            O site da sua loja deve enviar avaliações com a chave pública. Para
-            exibir somente o que foi aprovado, consulte o endpoint abaixo.
+            Este formulário envia uma avaliação real de um produto fictício pelo endpoint público usando
+            a chave do seu tenant. O resultado aparece na aba Comentários.
           </p>
 
           <div
@@ -641,6 +647,16 @@ x-api-key: SUA_CHAVE_PUBLICAVEL</code></pre>
               class="sandbox-form"
               style="display: flex; flex-direction: column; gap: 16px"
             >
+              <div style="display: flex; flex-direction: column; gap: 8px">
+                <label for="testNomeUsuario">Nome do autor (opcional):</label>
+                <input
+                  id="testNomeUsuario"
+                  type="text"
+                  maxlength="100"
+                  placeholder="Nome exibido ao lojista"
+                  #testNomeUsuario
+                />
+              </div>
               <div
                 style="
                   display: grid;
@@ -695,7 +711,8 @@ x-api-key: SUA_CHAVE_PUBLICAVEL</code></pre>
                 <button
                   class="btn-primary"
                   type="button"
-                  disabled
+                  [disabled]="enviandoTeste() || !chavePublica()"
+                  (click)="enviarAvaliacaoTeste(testNota.value, testComentario.value, testNomeUsuario.value, testComentario)"
                   style="
                     background: #7c3aed;
                     color: #fff;
@@ -709,9 +726,11 @@ x-api-key: SUA_CHAVE_PUBLICAVEL</code></pre>
                   onmouseover="this.style.background = '#6d28d9'"
                   onmouseout="this.style.background = '#7c3aed'"
                 >
-                  Use a API pública para enviar uma avaliação
+                  {{ enviandoTeste() ? 'Enviando...' : 'Enviar avaliação de teste' }}
                 </button>
               </div>
+              <p *ngIf="mensagemTeste()" role="status" style="color: #86efac">{{ mensagemTeste() }}</p>
+              <p *ngIf="erroTeste()" role="alert" style="color: #fca5a5">{{ erroTeste() }}</p>
             </div>
           </div>
         </section>

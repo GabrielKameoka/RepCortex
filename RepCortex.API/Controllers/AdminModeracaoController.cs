@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using RepCortex.Application.DTOs.Tenant;
 using RepCortex.Domain.Entities.Enums;
@@ -9,6 +10,7 @@ using RepCortex.Infrastructure.Security;
 namespace RepCortex.API.Controllers;
 
 [ApiController]
+[EnableCors(CorsPolicies.Dashboard)]
 [Route("api/admin/configuracoes/moderacao")]
 [Authorize(Policy = AuthPolicies.AdminOnly)]
 public class AdminModeracaoController : ControllerBase
