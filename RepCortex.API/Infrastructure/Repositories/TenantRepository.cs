@@ -23,14 +23,6 @@ public class TenantRepository : ITenantRepository
     {
         await _context.Tenants.AddAsync(tenant);
         await _context.SaveChangesAsync();
-
-        // Escrita proativa em cache
-        var cacheOptions = new DistributedCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1)
-        };
-        await _cache.SetStringAsync($"tenant:pubkey:{tenant.PublishableKey}", JsonSerializer.Serialize(tenant), cacheOptions);
-        await _cache.SetStringAsync($"tenant:seckey:{tenant.SecretKey}", JsonSerializer.Serialize(tenant), cacheOptions);
     }
 
     public async Task<bool> ExisteSlugAsync(string id)

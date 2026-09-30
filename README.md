@@ -49,6 +49,10 @@ para desenvolvimento e não deve ser ativado em produção.
 O dashboard exige senha com pelo menos oito caracteres. Configure suas origens
 web em `Cors:AllowedOrigins`; não use `*` com credenciais.
 
+Em `Production`, a API aplica as migrations do EF Core antes de aceitar requisições.
+Isso mantém o esquema do PostgreSQL do Railway alinhado aos modelos publicados;
+falhas de migration impedem a inicialização da API e aparecem nos logs do deploy.
+
 ## Segurança e limites atuais
 
 - A chave pública pode ser exposta no frontend da loja e permite apenas ingestão

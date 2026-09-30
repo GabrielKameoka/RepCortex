@@ -13,13 +13,15 @@ public class RegistrarTenantUseCase
     private readonly IIdentityService _identityService;
     private readonly ITenantService _tenantService;
     private readonly AppDbContext _context;
+    private readonly ILogger<RegistrarTenantUseCase> _logger;
 
-    public RegistrarTenantUseCase(ITenantRepository tenantRepository, IIdentityService identityService, ITenantService tenantService, AppDbContext context)
+    public RegistrarTenantUseCase(ITenantRepository tenantRepository, IIdentityService identityService, ITenantService tenantService, AppDbContext context, ILogger<RegistrarTenantUseCase> logger)
     {
         _tenantRepository = tenantRepository;
         _identityService = identityService;
         _tenantService = tenantService;
         _context = context;
+        _logger = logger;
     }
 
     public async Task<RegistrarTenantResponse> ExecutarAsync(RegistrarTenantRequest request)
@@ -34,7 +36,7 @@ public class RegistrarTenantUseCase
             return new RegistrarTenantResponse(false, "Este identificador de espaço (Slug) já está em uso.", null, null, null, null);
         }
 
-        using var transaction = await _context.Database.BeginTransactionAsync();
+        await using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
             // 3. Cria o Tenant com uma origem local segura até o administrador configurar o domínio real.
@@ -57,10 +59,12 @@ public class RegistrarTenantUseCase
                 return new RegistrarTenantResponse(false, userErro, null, null, null, null);
             }
 
-            await transaction.CommitAsync();
+            // 7. Gera o token antes do commit para que uma falha não deixe um cadastro parcial.
+            var (loginSucesso, token, loginErro) = await _identityService.LoginAsync(novoTenant.Id, request.Email, request.Senha);
+            if (!loginSucesso || string.IsNullOrWhiteSpace(token))
+                throw new InvalidOperationException(loginErro ?? "Não foi possível gerar a sessão do novo usuário.");
 
-            // 7. Auto-login: Gera o Token imediatamente após o cadastro para uma UX fluida
-            var (_, token, _) = await _identityService.LoginAsync(novoTenant.Id, request.Email, request.Senha);
+            await transaction.CommitAsync();
 
             return new RegistrarTenantResponse(
                 true,
@@ -74,7 +78,8 @@ public class RegistrarTenantUseCase
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
-            return new RegistrarTenantResponse(false, $"Erro inesperado durante o cadastro: {ex.Message}", null, null, null, null);
+            _logger.LogError(ex, "Falha ao registrar o tenant {TenantId}", slugProcessado);
+            return new RegistrarTenantResponse(false, "Não foi possível concluir o cadastro. Tente novamente.", null, null, null, null);
         }
     }
 }
