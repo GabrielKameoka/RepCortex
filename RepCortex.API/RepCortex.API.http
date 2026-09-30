@@ -53,8 +53,8 @@ X-Api-Key: {{publishableKey}}
 Content-Type: application/json
 
 {
-  "clienteId": "cli-12345",
   "usuarioIdExterno": "usr_999",
+  "nomeUsuarioExterno": "Mariana",
   "produtoId": "prod-777",
   "nota": 5,
   "comentario": "O produto é excelente, amei demais! Superou todas as expectativas.",
@@ -74,7 +74,6 @@ X-Api-Key: {{publishableKey}}
 Content-Type: application/json
 
 {
-  "clienteId": "cli-12345",
   "usuarioIdExterno": "usr_999",
   "produtoId": "prod-888",
   "nota": 5,
@@ -94,7 +93,6 @@ X-Api-Key: {{publishableKey}}
 Content-Type: application/json
 
 {
-  "clienteId": "cli-12345",
   "usuarioIdExterno": "usr_999",
   "produtoId": "prod-999",
   "nota": 1,
@@ -113,4 +111,3 @@ Content-Type: application/json
 GET {{RepCortex.API_HostAddress}}/api/admin/avaliacoes
 Authorization: Bearer {{adminToken}}
 Accept: application/json
-

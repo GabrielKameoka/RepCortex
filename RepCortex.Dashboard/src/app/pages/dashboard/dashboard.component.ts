@@ -1,8 +1,9 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, effect, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DashboardService } from '../../core/services/dashboard.service';
+import { AvaliacaoDashboard, DashboardService } from '../../core/services/dashboard.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Router } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import Chart from 'chart.js/auto';
 
 @Component({
@@ -18,10 +19,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   // Estado reativo para controlar a navegação interna do Dashboard
   public abaAtiva = signal<string>('metricas');
-  public avaliacoes = signal<any[]>([]);
+  public avaliacoes = signal<AvaliacaoDashboard[]>([]);
   public carregandoComentarios = signal<boolean>(false);
   public politicaModeracao = signal<number | null>(null);
   public salvandoPolitica = signal<boolean>(false);
+  public erroPolitica = signal<string | null>(null);
+  public chavePublica = signal<string | null>(null);
+  public enviandoTeste = signal<boolean>(false);
+  public mensagemTeste = signal<string | null>(null);
+  public erroTeste = signal<string | null>(null);
 
   constructor(
     public dashboardService: DashboardService,
@@ -90,6 +96,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.dashboardService.obtenerMetricasIniciais();
     this.carregarPoliticaModeracao();
+    this.carregarChavePublica();
     this.dashboardService.iniciarConexaoRealtime();
   }
 
@@ -103,7 +110,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   public carregarPoliticaModeracao(): void {
     this.dashboardService.obterPoliticaModeracao().subscribe({
       next: resposta => this.politicaModeracao.set(resposta.politica),
-      error: erro => console.error('Erro ao carregar política de moderação:', erro)
+      error: erro => this.erroPolitica.set(this.mensagemErro(erro, 'Não foi possível carregar a política.'))
     });
   }
 
@@ -111,6 +118,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const politica = Number((event.target as HTMLSelectElement).value);
     if (![1, 2].includes(politica)) return;
 
+    this.erroPolitica.set(null);
     this.salvandoPolitica.set(true);
     this.dashboardService.atualizarPoliticaModeracao(politica).subscribe({
       next: resposta => {
@@ -118,10 +126,73 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.salvandoPolitica.set(false);
       },
       error: erro => {
-        console.error('Erro ao atualizar política de moderação:', erro);
+        this.erroPolitica.set(this.mensagemErro(erro, 'Não foi possível salvar a política.'));
         this.salvandoPolitica.set(false);
+        (event.target as HTMLSelectElement).value = String(this.politicaModeracao());
       }
     });
+  }
+
+  public carregarChavePublica(): void {
+    this.dashboardService.obterChavePublica().subscribe({
+      next: resposta => this.chavePublica.set(resposta.publishableKey),
+      error: erro => this.erroTeste.set(this.mensagemErro(erro, 'Não foi possível carregar a chave pública.'))
+    });
+  }
+
+  public enviarAvaliacaoTeste(
+    notaTexto: string,
+    comentario: string,
+    nomeUsuarioExterno: string,
+    campoComentario: HTMLTextAreaElement
+  ): void {
+    const nota = Number(notaTexto);
+    const chave = this.chavePublica();
+    this.mensagemTeste.set(null);
+    this.erroTeste.set(null);
+
+    if (!Number.isInteger(nota) || nota < 1 || nota > 5 || !comentario.trim()) {
+      this.erroTeste.set('Informe uma nota de 1 a 5 e um comentário.');
+      return;
+    }
+    if (!chave) {
+      this.erroTeste.set('Chave pública indisponível. Recarregue a página e tente novamente.');
+      return;
+    }
+    if (nomeUsuarioExterno.trim().length > 100) {
+      this.erroTeste.set('O nome do autor deve ter até 100 caracteres.');
+      return;
+    }
+
+    const id = crypto.randomUUID();
+    this.enviandoTeste.set(true);
+    this.dashboardService.enviarAvaliacaoTeste(chave, {
+      usuarioIdExterno: `usr_teste_${id}`,
+      nomeUsuarioExterno: nomeUsuarioExterno.trim() || undefined,
+      produtoId: 'produto-teste',
+      nota,
+      comentario: comentario.trim(),
+      fingerprint: `teste_${id}`
+    }).subscribe({
+      next: resposta => {
+        this.enviandoTeste.set(false);
+        this.mensagemTeste.set(`Avaliação enviada com status ${resposta.status}. Confira na aba Comentários.`);
+        campoComentario.value = '';
+        this.carregarComentarios();
+        this.dashboardService.obtenerMetricasIniciais();
+      },
+      error: erro => {
+        this.enviandoTeste.set(false);
+        this.erroTeste.set(this.mensagemErro(erro, 'Não foi possível enviar a avaliação.'));
+      }
+    });
+  }
+
+  private mensagemErro(erro: HttpErrorResponse, padrao: string): string {
+    const resposta = erro.error;
+    return typeof resposta === 'object' && resposta !== null && typeof resposta.mensagem === 'string'
+      ? resposta.mensagem
+      : padrao;
   }
 
   private atualizarGrafico(volumetria: any[]): void {

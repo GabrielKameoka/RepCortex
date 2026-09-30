@@ -18,8 +18,18 @@ public class AppDbContextModelTests
 
         using var context = new AppDbContext(options, new TenantService());
 
-        context.Model.FindEntityType(typeof(Avaliacao)).Should().NotBeNull();
+        var avaliacao = context.Model.FindEntityType(typeof(Avaliacao));
+        avaliacao.Should().NotBeNull();
+        var nomeExterno = avaliacao!.FindProperty(nameof(Avaliacao.NomeUsuarioExterno));
+        nomeExterno.Should().NotBeNull();
+        nomeExterno!.IsNullable.Should().BeTrue();
+        nomeExterno.GetMaxLength().Should().Be(100);
+        avaliacao.FindProperty(nameof(Avaliacao.ClienteId))!.IsNullable.Should().BeTrue();
         context.Database.GetMigrations()
             .Should().Contain("20260928000100_AdicionarPoliticaModeracaoAoTenant");
+        context.Database.GetMigrations()
+            .Should().Contain("20260929000100_AdicionarNomeUsuarioExternoAvaliacao");
+        context.Database.GetMigrations()
+            .Should().Contain("20260930000100_TornarClienteIdLegadoOpcional");
     }
 }

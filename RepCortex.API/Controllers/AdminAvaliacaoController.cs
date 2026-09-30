@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using RepCortex.Application.Services;
 using RepCortex.Infrastructure.Security;
@@ -6,6 +7,7 @@ using RepCortex.Infrastructure.Security;
 namespace RepCortex.API.Controllers;
 
 [ApiController]
+[EnableCors(CorsPolicies.Dashboard)]
 [Route("api/admin/avaliacoes")]
 [Authorize(Policy = AuthPolicies.AdminOnly)]
 public class AdminAvaliacaoController : ControllerBase
@@ -26,6 +28,8 @@ public class AdminAvaliacaoController : ControllerBase
         {
             a.Id,
             a.ProdutoId,
+            a.UsuarioIdExterno,
+            a.NomeUsuarioExterno,
             a.Nota,
             a.Comentario,
             Status = a.Status.ToString(),

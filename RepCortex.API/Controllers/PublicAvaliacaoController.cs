@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using RepCortex.Application.DTOs;
@@ -8,6 +9,7 @@ using RepCortex.Infrastructure.Security;
 namespace RepCortex.API.Controllers;
 
 [ApiController]
+[EnableCors(CorsPolicies.PublicApi)]
 [Route("api/public/avaliacoes")]
 [Authorize(Policy = AuthPolicies.PublicIngestOnly)] // Reativado: Exige X-Api-Key válida
 [EnableRateLimiting("PublicWidgetPolicy")]          // Reativado: Ativa a proteção do Redis contra spam

@@ -17,6 +17,8 @@ export interface MetricasDashboard {
 export interface AvaliacaoDashboard {
   id: string;
   produtoId: string;
+  usuarioIdExterno: string;
+  nomeUsuarioExterno: string | null;
   nota: number;
   comentario: string;
   status: string;
@@ -27,6 +29,19 @@ export interface AvaliacaoDashboard {
 
 export interface PoliticaModeracaoResponse {
   politica: number;
+}
+
+export interface AvaliacaoTesteRequest {
+  usuarioIdExterno: string;
+  nomeUsuarioExterno?: string;
+  produtoId: string;
+  nota: number;
+  comentario: string;
+  fingerprint: string;
+}
+
+export interface AvaliacaoTesteResponse {
+  status: string;
 }
 
 @Injectable({
@@ -102,5 +117,15 @@ export class DashboardService {
 
   public atualizarPoliticaModeracao(politica: number) {
     return this.http.put<PoliticaModeracaoResponse>(`${environment.apiUrl}/admin/configuracoes/moderacao`, { politica });
+  }
+
+  public obterChavePublica() {
+    return this.http.get<{ publishableKey: string }>(`${environment.apiUrl}/admin/integracao/chave-publica`);
+  }
+
+  public enviarAvaliacaoTeste(chavePublica: string, avaliacao: AvaliacaoTesteRequest) {
+    return this.http.post<AvaliacaoTesteResponse>(`${environment.apiUrl}/public/avaliacoes`, avaliacao, {
+      headers: { 'x-api-key': chavePublica }
+    });
   }
 }

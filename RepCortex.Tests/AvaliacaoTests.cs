@@ -12,7 +12,6 @@ public class AvaliacaoTests
     {
         // Arrange
         var tenantId = "loja-teste-01";
-        var clienteId = Guid.NewGuid().ToString();
         var usuarioIdExterno = "usr_123";
         var produtoId = "prod_999";
         var nota = 5;
@@ -24,7 +23,6 @@ public class AvaliacaoTests
         // Act
         var avaliacao = new Avaliacao(
             tenantId,
-            clienteId,
             usuarioIdExterno,
             produtoId,
             nota,
@@ -48,7 +46,7 @@ public class AvaliacaoTests
 
         // Act
         var avaliacao = new Avaliacao(
-            "tenant-01", "cli-1", "usr-1", "prod-1",
+            "tenant-01", "usr-1", "prod-1",
             nota, comentario, "127.0.0.1", "fingerprint", sentimento
         );
 
@@ -60,11 +58,61 @@ public class AvaliacaoTests
     public void Construtor_DeveReterComoPendente_QuandoPoliticaForManual()
     {
         var avaliacao = new Avaliacao(
-            "tenant-01", "cli-1", "usr-1", "prod-1",
+            "tenant-01", "usr-1", "prod-1",
             5, "Excelente produto", "127.0.0.1", "fingerprint",
             SentimentoAvaliacao.Positivo, PoliticaModeracao.Manual);
 
         avaliacao.Status.Should().Be(StatusAvaliacao.Pendente);
+    }
+
+    [Fact]
+    public void Construtor_DeveGuardarNomeExternoNormalizado()
+    {
+        var avaliacao = new Avaliacao(
+            "tenant-01", "usr-1", "prod-1", 5,
+            "Excelente produto", "127.0.0.1", "fingerprint",
+            SentimentoAvaliacao.Positivo, nomeUsuarioExterno: "  Mariana Silva  ");
+
+        avaliacao.NomeUsuarioExterno.Should().Be("Mariana Silva");
+        avaliacao.UsuarioIdExterno.Should().Be("usr-1");
+        avaliacao.ClienteId.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("   ")]
+    public void Construtor_DeveAceitarAvaliacaoSemNomeExterno(string? nome)
+    {
+        var avaliacao = new Avaliacao(
+            "tenant-01", "usr-1", "prod-1", 5,
+            "Excelente produto", "127.0.0.1", "fingerprint",
+            SentimentoAvaliacao.Positivo, nomeUsuarioExterno: nome);
+
+        avaliacao.NomeUsuarioExterno.Should().BeNull();
+    }
+
+    [Fact]
+    public void Construtor_DeveRejeitarNomeExternoAcimaDoLimite()
+    {
+        Action criar = () => new Avaliacao(
+            "tenant-01", "usr-1", "prod-1", 5,
+            "Excelente produto", "127.0.0.1", "fingerprint",
+            SentimentoAvaliacao.Positivo, nomeUsuarioExterno: new string('A', 101));
+
+        criar.Should().Throw<ArgumentException>()
+            .WithMessage("O nome do usuário externo deve ter até 100 caracteres.");
+    }
+
+    [Fact]
+    public void Construtor_DeveExigirSomenteOIdDoAutor()
+    {
+        Action criar = () => new Avaliacao(
+            "tenant-01", " ", "prod-1", 5,
+            "Excelente produto", "127.0.0.1", "fingerprint",
+            SentimentoAvaliacao.Positivo);
+
+        criar.Should().Throw<ArgumentException>()
+            .WithMessage("O ID do usuário externo é obrigatório.");
     }
 
     [Theory]
@@ -74,7 +122,7 @@ public class AvaliacaoTests
     {
         // Act
         var avaliacao = new Avaliacao(
-            "tenant-01", "cli-1", "usr-1", "prod-1",
+            "tenant-01", "usr-1", "prod-1",
             notaBaixa, "Texto qualquer", "127.0.0.1", "fingerprint", SentimentoAvaliacao.Neutro
         );
 
@@ -90,7 +138,7 @@ public class AvaliacaoTests
 
         // Act & Assert
         Action acao = () => new Avaliacao(
-            "tenant-01", "cli-1", "usr-1", "prod-1",
+            "tenant-01", "usr-1", "prod-1",
             notaInvalida, "Comentário", "127.0.0.1", "fingerprint", SentimentoAvaliacao.Positivo
         );
 
@@ -103,7 +151,7 @@ public class AvaliacaoTests
     {
         // Arrange
         var avaliacao = new Avaliacao(
-            "tenant-01", "cli-1", "usr-1", "prod-1",
+            "tenant-01", "usr-1", "prod-1",
             2, "Produto ruim", "127.0.0.1", "fingerprint", SentimentoAvaliacao.Negativo
         );
         avaliacao.Status.Should().Be(StatusAvaliacao.Pendente);
