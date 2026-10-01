@@ -1,0 +1,15 @@
+.git/
+.github/
+.idea/
+.env
+.env.*
+**/.env
+**/.env.*
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/bin/
+**/obj/
+**/node_modules/
+frontend/
+*.DotSettings.user
+.DS_Store
