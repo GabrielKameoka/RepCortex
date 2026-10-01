@@ -1,47 +1,40 @@
-/* You can add global styles to this file, and also import other style files */
 :root {
-  --bg-primary: #090d16;
-  --bg-surface: #111827;
-  --border-color: #1f2937;
-  --text-main: #f9fafb;
-  --text-muted: #9ca3af;
-  --accent-color: #7c3aed;
-  --accent-hover: #6d28d9;
-  --error-color: #ef4444;
+  color-scheme: dark;
+  --bg-primary: #0c0b12;
+  --bg-surface: #171522;
+  --bg-raised: #211d2c;
+  --border-color: #3e374b;
+  --text-main: #f3f0f7;
+  --text-muted: #b8afca;
+  --accent-color: #b793f8;
+  --accent-hover: #c9adfb;
+  --error-color: #f08491;
+  --success-color: #72d6ad;
+  --warning-color: #f3c979;
+  --font-body: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  background-color: var(--bg-primary);
-  color: var(--text-main);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
-
-input {
-  background-color: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  color: var(--text-main);
-  padding: 0.75rem 1rem;
-  border-radius: 6px;
-  font-size: 0.95rem;
-  outline: none;
-  transition: border-color 0.2s ease;
-}
-
-input:focus {
-  border-color: var(--accent-color);
-}
-
-button {
-  cursor: pointer;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  transition: background-color 0.2s ease;
-}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; min-width: 320px; background: var(--bg-primary); color: var(--text-main); font: 400 16px/1.5 var(--font-body); -webkit-font-smoothing: antialiased; }
+button, input, textarea, select { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .55; }
+input, textarea, select { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-main); padding: .75rem .9rem; min-height: 44px; }
+input::placeholder, textarea::placeholder { color: #a59ab9; }
+input[aria-invalid="true"] { border-color: var(--error-color); }
+:focus-visible { outline: 3px solid var(--accent-color); outline-offset: 3px; }
+a { color: var(--accent-color); }
+h1, h2, h3, h4, p { margin-top: 0; }
+.button-primary, .button-secondary, .text-button { border: 1px solid transparent; border-radius: 8px; font-weight: 600; min-height: 44px; padding: .65rem 1rem; transition: background-color .2s, border-color .2s, color .2s; }
+.button-primary { background: var(--accent-color); color: #120d1c; }
+.button-primary:hover:not(:disabled) { background: var(--accent-hover); }
+.button-secondary { background: var(--bg-raised); border-color: var(--border-color); color: var(--text-main); }
+.button-secondary:hover:not(:disabled) { border-color: var(--accent-color); }
+.text-button { background: transparent; color: var(--accent-color); padding-inline: .3rem; }
+.text-button:hover { color: var(--accent-hover); text-decoration: underline; }
+.wide { width: 100%; }
+.feedback { border: 1px solid var(--border-color); border-radius: 8px; padding: .8rem 1rem; background: var(--bg-raised); color: var(--text-main); line-height: 1.5; }
+.feedback.error { border-color: var(--error-color); color: #ffd9df; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
