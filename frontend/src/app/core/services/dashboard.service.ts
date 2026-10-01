@@ -56,6 +56,7 @@ export class DashboardService {
   
   public metricas: WritableSignal<MetricasDashboard | null> = signal<MetricasDashboard | null>(null);
   public carregando = signal<boolean>(false);
+  public erroMetricas = signal<string | null>(null);
 
   constructor(private http: HttpClient, private authService: AuthService) {}
 
@@ -77,6 +78,7 @@ export class DashboardService {
 
   public obtenerMetricasIniciais(): void {
     this.carregando.set(true);
+    this.erroMetricas.set(null);
     this.http.get<MetricasDashboard>(this.apiUrl).subscribe({
       next: (dados) => {
         this.metricas.set(dados);
@@ -84,6 +86,7 @@ export class DashboardService {
       },
       error: (err) => {
         console.error('Erro ao carregar métricas via HTTP:', err);
+        this.erroMetricas.set('Não foi possível carregar os indicadores. Tente novamente.');
         this.carregando.set(false);
       }
     });
@@ -95,11 +98,11 @@ export class DashboardService {
         accessTokenFactory: () => this.authService.getToken() ?? ''
       })
       .withAutomaticReconnect()
+      .configureLogging(signalR.LogLevel.Warning)
       .build();
 
     this.hubConnection
       .start()
-      .then(() => console.log('WebSocket conectado ao barramento de eventos do RepCortex.'))
       .catch(err => console.error('Falha na conexão em tempo real:', err));
 
     this.hubConnection.on('ReceberMetricasAtualizadas', (novasMetricas: MetricasDashboard) => {

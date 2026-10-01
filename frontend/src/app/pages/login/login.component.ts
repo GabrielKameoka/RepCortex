@@ -14,9 +14,11 @@ import { AuthService } from '../../core/services/auth.service';
 })
 export class LoginComponent {
   public authForm: FormGroup;
-  public isLoginMode = signal<boolean>(true); // Alterna entre Login e Cadastro
+  public isLoginMode = signal<boolean>(true);
   public errorMessage = signal<string>('');
   public isLoading = signal<boolean>(false);
+  public registroConcluido = signal<{ tenantId: string; secretKey: string; publishableKey: string } | null>(null);
+  public mensagemCopia = signal<string>('');
 
   constructor(
     private fb: FormBuilder,
@@ -35,6 +37,7 @@ export class LoginComponent {
   public toggleMode(): void {
     this.isLoginMode.set(!this.isLoginMode());
     this.errorMessage.set('');
+    this.registroConcluido.set(null);
     this.authForm.reset();
 
     for (const field of ['nomeComercial', 'nomeCompleto']) {
@@ -45,7 +48,10 @@ export class LoginComponent {
   }
 
   public onSubmit(): void {
-    if (this.authForm.invalid) return;
+    if (this.authForm.invalid) {
+      this.authForm.markAllAsTouched();
+      return;
+    }
 
     this.isLoading.set(true);
     this.errorMessage.set('');
@@ -64,7 +70,12 @@ export class LoginComponent {
       this.authService.registrar(tenantId, nomeComercial, nomeCompleto, email, senha).subscribe({
         next: (res) => {
           if (res.sucesso) {
-            this.router.navigate(['/dashboard']);
+            this.registroConcluido.set({
+              tenantId: res.tenantId,
+              secretKey: res.secretKey,
+              publishableKey: res.publishableKey
+            });
+            this.isLoading.set(false);
           } else {
             this.errorMessage.set(res.mensagem);
             this.isLoading.set(false);
@@ -76,6 +87,23 @@ export class LoginComponent {
         }
       });
     }
+  }
+
+  public async copiarChaveSecreta(): Promise<void> {
+    const chave = this.registroConcluido()?.secretKey;
+    if (!chave) return;
+
+    try {
+      await navigator.clipboard.writeText(chave);
+      this.mensagemCopia.set('Chave copiada. Guarde-a em um local seguro.');
+    } catch {
+      this.mensagemCopia.set('Não foi possível copiar automaticamente. Selecione a chave e copie manualmente.');
+    }
+  }
+
+  public entrarNoPainel(): void {
+    this.registroConcluido.set(null);
+    this.router.navigate(['/dashboard']);
   }
 
   private mensagemErro(err: HttpErrorResponse, padrao: string): string {
