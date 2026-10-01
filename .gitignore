@@ -23,6 +23,7 @@ appsettings.Local.json
 *.user.env
 
 # Angular / Node
-**/RepCortex.Dashboard/node_modules/
-**/RepCortex.Dashboard/.angular/
-**/RepCortex.Dashboard/dist/
+frontend/node_modules/
+frontend/.angular/
+frontend/dist/
+**/.angular/

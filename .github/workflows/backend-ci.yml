@@ -1,0 +1,87 @@
+name: Backend CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - 'backend/**'
+      - '.dockerignore'
+      - 'railway.json'
+      - '.github/workflows/backend-ci.yml'
+  push:
+    branches: [develop, main]
+    paths:
+      - 'backend/**'
+      - '.dockerignore'
+      - 'railway.json'
+      - '.github/workflows/backend-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: repcortex_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-postgres-password
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d repcortex_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://127.0.0.1:8080
+      ConnectionStrings__DefaultConnection: Host=127.0.0.1;Port=5432;Database=repcortex_ci;Username=postgres;Password=ci-postgres-password
+      Redis__ConnectionString: 127.0.0.1:6379
+      Jwt__Secret: ci-signing-key-for-backend-integration-tests-32-bytes
+      Jwt__Issuer: RepCortexCI
+      Jwt__Audience: RepCortexCI
+      Database__ApplyMigrations: 'true'
+      Demo__SeedData: 'false'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore
+        run: dotnet restore RepCortex.sln
+      - name: Build
+        run: dotnet build RepCortex.sln -c Release --no-restore -warnaserror
+      - name: Unit and architecture tests
+        run: dotnet test RepCortex.sln -c Release --no-build
+      - name: HTTP integration smoke
+        run: |
+          dotnet run --project RepCortex.API/RepCortex.API.csproj -c Release --no-build --no-launch-profile > "$RUNNER_TEMP/repcortex-api.log" 2>&1 &
+          api_pid=$!
+          trap 'kill "$api_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 45); do
+            if curl --silent --fail http://127.0.0.1:8080/openapi/v1.json > /dev/null; then break; fi
+            sleep 2
+          done
+          curl --silent --fail http://127.0.0.1:8080/openapi/v1.json > /dev/null || { cat "$RUNNER_TEMP/repcortex-api.log"; exit 1; }
+          python3 scripts/smoke-backend.py || { cat "$RUNNER_TEMP/repcortex-api.log"; exit 1; }
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build Railway image
+        run: docker build -f backend/Dockerfile -t repcortex-api:ci .

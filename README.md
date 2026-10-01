@@ -27,18 +27,54 @@ aprovadas não inclui nome nem ID do autor.
 
 ## Arquitetura
 
-- `RepCortex.API`: ASP.NET Core 10, Clean Architecture, JWT, API key pública,
-  PostgreSQL, Redis, SignalR e filtros globais de tenant.
-- `RepCortex.Dashboard`: Angular 16 com interceptor JWT, guard de rota e painel
-  de moderação.
-- `RepCortex.Tests`: testes de domínio para as regras de publicação e sentimento.
+- `frontend/`: projeto Angular do dashboard, com `package.json` e `angular.json`
+  na raiz dessa pasta.
+- `backend/`: solução `.NET 10` única que contém API, class libraries e testes.
+- `backend/RepCortex.Domain`: agregados `Tenant` e `Avaliacao`, entidade `Usuario`,
+  enumerações e regras de negócio. Não referencia os outros projetos.
+- `backend/RepCortex.Application`: casos de uso, DTOs e portas para persistência,
+  transação, identidade e contexto da requisição. Referencia apenas Domain.
+- `backend/RepCortex.Infrastructure`: EF Core/PostgreSQL, migrations, Identity, JWT,
+  Redis e análise de sentimento. Implementa as portas de Application.
+- `backend/RepCortex.API`: controllers, autenticação HTTP, CORS, middleware, SignalR e
+  composição das dependências. Referencia Application e Infrastructure.
+- `backend/RepCortex.Tests`: testes de domínio, modelo EF e direção das dependências.
+
+As referências entre projetos impõem a direção `API → Application ← Infrastructure`
+e `Application → Domain ← Infrastructure`. Controllers delegam operações aos
+serviços e casos de uso da aplicação. `AppDbContext` e `HttpContext` permanecem
+fora de Application e Domain.
 
 ## Configuração local
 
 ```bash
-dotnet restore
-dotnet test
+cd backend
+dotnet restore RepCortex.sln
+dotnet build RepCortex.sln -c Release -warnaserror
+dotnet test RepCortex.sln -c Release --no-build
 ```
+
+As migrations e o snapshot existentes pertencem a `RepCortex.Infrastructure`.
+Para listar ou criar migrations, use o projeto da API como startup e o de
+Infrastructure como destino:
+
+```bash
+dotnet ef migrations list --project RepCortex.Infrastructure --startup-project RepCortex.API
+dotnet ef migrations add NomeDaMigration --project RepCortex.Infrastructure --startup-project RepCortex.API
+```
+
+O workflow `Backend CI` executa build Release sem avisos, testes de unidade e
+arquitetura, um fluxo HTTP com PostgreSQL e Redis temporários e o build da
+imagem Docker usada pelo Railway. Para repetir o teste HTTP contra uma API
+local com dados descartáveis, execute a partir de `backend/`:
+
+```bash
+API_BASE_URL=http://localhost:8080 python3 scripts/smoke-backend.py
+```
+
+O Dockerfile da API fica em `backend/Dockerfile`; `railway.json` aponta para
+ele com contexto de build na raiz do repositório. O projeto Vercel do dashboard
+deve usar `frontend` como Root Directory quando essa mudança chegar a `main`.
 
 O banco não recebe dados fictícios por padrão. Para uma demonstração local,
 habilite explicitamente `Database:ApplyMigrations=true` e `Demo:SeedData=true`,
