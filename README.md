@@ -27,6 +27,9 @@ aprovadas não inclui nome nem ID do autor.
 
 ## Arquitetura
 
+O [guia de arquitetura](.agent/ARCHITECTURE.md) detalha os fluxos atuais, as
+regras para novas funcionalidades e o roadmap arquitetural.
+
 - `frontend/`: projeto Angular do dashboard, com `package.json` e `angular.json`
   na raiz dessa pasta.
 - `backend/`: solução `.NET 10` única que contém API, class libraries e testes.
