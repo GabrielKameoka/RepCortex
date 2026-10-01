@@ -1,54 +1,86 @@
-<div class="login-container">
-  <div class="login-card">
-    <div class="login-header">
-      <h1>RepCortex</h1>
-      <p>{{ isLoginMode() ? 'Acesse o painel do seu espaço' : 'Crie uma infraestrutura para sua empresa' }}</p>
+<main class="auth-shell">
+  <section class="auth-story" aria-labelledby="story-title">
+    <div class="wordmark"><span class="brand-symbol" aria-hidden="true"></span> RepCortex</div>
+    <div class="story-content">
+      <p class="story-kicker">Avaliações sob seu controle</p>
+      <h1 id="story-title">Cada avaliação merece uma decisão clara.</h1>
+      <p class="story-description">Receba opiniões da sua loja, acompanhe o sentimento e publique o que faz sentido para seus clientes.</p>
+      <div class="story-rule" aria-hidden="true"></div>
+      <p class="story-footnote">Da primeira avaliação à resposta final, tudo em um só espaço.</p>
+    </div>
+    <p class="story-bottom">Uma plataforma aberta para integrar com a sua loja.</p>
+  </section>
+
+  <section class="auth-panel" aria-labelledby="form-title">
+    <div class="auth-mobile-brand"><span class="brand-symbol" aria-hidden="true"></span> RepCortex</div>
+
+    <div *ngIf="registroConcluido() as registro; else authFormView" class="auth-content key-handoff">
+      <p class="section-kicker">Espaço criado</p>
+      <h2 id="form-title">Guarde sua chave secreta.</h2>
+      <p>Esta chave foi entregue no cadastro e não aparecerá novamente no painel. Use-a apenas em integrações no servidor.</p>
+      <div class="handoff-detail">
+        <span>Seu espaço</span>
+        <strong>{{ registro.tenantId }}</strong>
+      </div>
+      <label for="secretKey">Chave secreta</label>
+      <div class="secret-key-box">
+        <input id="secretKey" [value]="registro.secretKey || 'Chave não retornada pela API'" readonly autocomplete="off" />
+        <button type="button" class="button-secondary" (click)="copiarChaveSecreta()" [disabled]="!registro.secretKey">Copiar</button>
+      </div>
+      <p *ngIf="!registro.secretKey" class="feedback error" role="alert">O cadastro foi concluído, mas a API não retornou a chave secreta.</p>
+      <p *ngIf="mensagemCopia()" class="feedback" role="status">{{ mensagemCopia() }}</p>
+      <button type="button" class="button-primary wide" (click)="entrarNoPainel()">Guardei a chave. Abrir painel</button>
     </div>
 
-    <form [formGroup]="authForm" (ngSubmit)="onSubmit()">
-      
-      <div class="form-group">
-        <label for="tenantId">Identificador do Espaço (Slug / TenantId)</label>
-        <input id="tenantId" type="text" formControlName="tenantId" placeholder="ex: minha-loja">
+    <ng-template #authFormView>
+      <div class="auth-content">
+        <p class="section-kicker">{{ isLoginMode() ? 'Bem-vindo de volta' : 'Comece por aqui' }}</p>
+        <h2 id="form-title">{{ isLoginMode() ? 'Entre no seu espaço.' : 'Crie seu espaço.' }}</h2>
+        <p class="form-intro">{{ isLoginMode() ? 'Use o identificador da sua loja e seus dados de acesso.' : 'Configure a conta para receber e moderar avaliações da sua loja.' }}</p>
+
+        <form [formGroup]="authForm" (ngSubmit)="onSubmit()" novalidate>
+          <div class="field">
+            <label for="tenantId">Identificador da loja</label>
+            <input id="tenantId" type="text" formControlName="tenantId" placeholder="minha-loja" autocomplete="organization" [attr.aria-invalid]="authForm.get('tenantId')?.touched && authForm.get('tenantId')?.invalid" />
+            <small *ngIf="authForm.get('tenantId')?.touched && authForm.get('tenantId')?.invalid" class="field-error">Informe o identificador da loja.</small>
+          </div>
+
+          <ng-container *ngIf="!isLoginMode()">
+            <div class="field">
+              <label for="nomeComercial">Nome da loja</label>
+              <input id="nomeComercial" type="text" formControlName="nomeComercial" placeholder="Minha Loja" autocomplete="organization" [attr.aria-invalid]="authForm.get('nomeComercial')?.touched && authForm.get('nomeComercial')?.invalid" />
+              <small *ngIf="authForm.get('nomeComercial')?.touched && authForm.get('nomeComercial')?.invalid" class="field-error">Informe o nome da loja.</small>
+            </div>
+            <div class="field">
+              <label for="nomeCompleto">Seu nome</label>
+              <input id="nomeCompleto" type="text" formControlName="nomeCompleto" autocomplete="name" [attr.aria-invalid]="authForm.get('nomeCompleto')?.touched && authForm.get('nomeCompleto')?.invalid" />
+              <small *ngIf="authForm.get('nomeCompleto')?.touched && authForm.get('nomeCompleto')?.invalid" class="field-error">Informe seu nome.</small>
+            </div>
+          </ng-container>
+
+          <div class="field">
+            <label for="email">E-mail</label>
+            <input id="email" type="email" formControlName="email" placeholder="voce@loja.com" autocomplete="email" [attr.aria-invalid]="authForm.get('email')?.touched && authForm.get('email')?.invalid" />
+            <small *ngIf="authForm.get('email')?.touched && authForm.get('email')?.invalid" class="field-error">Informe um e-mail válido.</small>
+          </div>
+
+          <div class="field">
+            <label for="senha">Senha</label>
+            <input id="senha" type="password" formControlName="senha" autocomplete="current-password" [attr.aria-invalid]="authForm.get('senha')?.touched && authForm.get('senha')?.invalid" />
+            <small *ngIf="authForm.get('senha')?.touched && authForm.get('senha')?.invalid" class="field-error">A senha deve ter pelo menos 8 caracteres.</small>
+          </div>
+
+          <p *ngIf="errorMessage()" class="feedback error" role="alert">{{ errorMessage() }}</p>
+          <button type="submit" class="button-primary wide" [disabled]="isLoading()">
+            {{ isLoading() ? 'Aguarde...' : (isLoginMode() ? 'Entrar no painel' : 'Criar espaço') }}
+          </button>
+        </form>
+
+        <p class="auth-switch">
+          {{ isLoginMode() ? 'Sua loja ainda não tem um espaço?' : 'Já tem um espaço?' }}
+          <button type="button" class="text-button" (click)="toggleMode()">{{ isLoginMode() ? 'Criar conta' : 'Entrar' }}</button>
+        </p>
       </div>
-
-      <ng-container *ngIf="!isLoginMode()">
-        <div class="form-group">
-          <label for="nomeComercial">Nome Comercial da Empresa</label>
-          <input id="nomeComercial" type="text" formControlName="nomeComercial" placeholder="ex: RepCortex Inc.">
-        </div>
-
-        <div class="form-group">
-          <label for="nomeCompleto">Seu Nome Completo</label>
-          <input id="nomeCompleto" type="text" formControlName="nomeCompleto">
-        </div>
-      </ng-container>
-
-      <div class="form-group">
-        <label for="email">E-mail Administrativo</label>
-        <input id="email" type="email" formControlName="email" placeholder="seu@email.com">
-      </div>
-
-      <div class="form-group">
-        <label for="senha">Senha de Acesso</label>
-        <input id="senha" type="password" formControlName="senha" placeholder="Sua senha">
-      </div>
-
-      <div *ngIf="errorMessage()" class="error-alert">
-        {{ errorMessage() }}
-      </div>
-
-      <button type="submit" class="btn-primary" [disabled]="isLoading() || authForm.invalid">
-        {{ isLoading() ? 'Processando...' : (isLoginMode() ? 'Entrar no Painel' : 'Criar Conta Open Source') }}
-      </button>
-    </form>
-
-    <div class="login-footer">
-      <button class="btn-link" type="button" (click)="toggleMode()">
-        {{ isLoginMode() ? 'Precisa de um novo espaço? Cadastre-se' : 'Já possui um espaço? Faça login' }}
-      </button>
-    </div>
-  </div>
-</div>
-
-
+    </ng-template>
+  </section>
+</main>
