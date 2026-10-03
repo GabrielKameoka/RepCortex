@@ -5,9 +5,52 @@ moderarem e publicarem avaliações de produtos. O desenvolvedor integra a API
 ao site da loja: visitantes enviam comentários com uma chave pública e o dono
 decide o que aparece na página do produto.
 
+[Dashboard publicado](https://repcortex-dashboard.vercel.app/login) ·
+[API publicada](https://repcortex-production.up.railway.app/scalar/v1) ·
+[Código e versões](https://github.com/GabrielKameoka/RepCortex/releases)
+
+![Fila de moderação do RepCortex com avaliação recebida pela API pública](docs/dashboard-demo.png)
+
+## Demonstração em 2 minutos
+
+Com Docker ativo, execute na raiz do repositório:
+
+```bash
+docker compose -f docker-compose.demo.yml up --build
+```
+
+Abra [o dashboard local](http://localhost:4200) e entre com a loja `demo-loja`,
+e-mail `demo@repcortex.local` e senha `DemoPassword123!`. A base local já tem
+avaliações de exemplo. Na aba **Integração**, copie a chave pública e, em outro
+terminal, envie uma avaliação como se viesse da loja:
+
+```bash
+bash backend/scripts/demo-review.sh rc_pub_SUA_CHAVE
+```
+
+A avaliação entra na **Fila** e atualiza os indicadores em tempo real. Responda
+ou aprove a avaliação; consulte as publicadas para `produto-demo` pela API
+pública usando a mesma chave:
+
+```bash
+curl -H 'X-Api-Key: rc_pub_SUA_CHAVE' \
+  'http://localhost:5154/api/public/avaliacoes?produtoId=produto-demo'
+```
+
+A [referência interativa da API](http://localhost:5154/scalar/v1)
+fica disponível durante a demo. Os dados ficam no volume local
+`demo-postgres`; este ambiente usa credenciais apenas para demonstração.
+Para encerrar, execute `docker compose -f docker-compose.demo.yml down`.
+
+**Roteiro curto:** mostre a fila e as métricas iniciais; envie a avaliação pelo
+script; observe a atualização sem recarregar; responda à avaliação; consulte a
+listagem pública. O percurso evidencia contrato HTTP, moderação, isolamento do
+tenant e atualização via SignalR.
+
 ## Fluxo do produto
 
-1. O lojista cria seu espaço e recebe uma `publishableKey` uma única vez.
+1. O lojista cria seu espaço; recebe a `secretKey` apenas no cadastro e pode
+   consultar a `publishableKey` no painel de integração.
 2. O site envia avaliações para `POST /api/public/avaliacoes` usando `x-api-key`.
    Deve informar `usuarioIdExterno` (ID do autor na loja) e pode informar
    `nomeUsuarioExterno` (nome de exibição, até 100 caracteres).
@@ -27,7 +70,7 @@ aprovadas não inclui nome nem ID do autor.
 
 ## Arquitetura
 
-O [guia de arquitetura](.agent/ARCHITECTURE.md) detalha os fluxos atuais, as
+O [guia de arquitetura](.agents/ARCHITECTURE.md) detalha os fluxos atuais, as
 regras para novas funcionalidades e o roadmap arquitetural.
 
 - `frontend/`: projeto Angular do dashboard, com `package.json` e `angular.json`
@@ -75,6 +118,10 @@ local com dados descartáveis, execute a partir de `backend/`:
 API_BASE_URL=http://localhost:8080 python3 scripts/smoke-backend.py
 ```
 
+O smoke cria dois tenants e verifica que chaves públicas, consultas e ações
+administrativas não atravessam a fronteira entre lojas. O workflow `Frontend CI`
+executa build e testes Angular para PRs que alteram `frontend/`.
+
 O Dockerfile da API fica em `backend/Dockerfile`; `railway.json` aponta para
 ele com contexto de build na raiz do repositório. O projeto Vercel do dashboard
 deve usar `frontend` como Root Directory quando essa mudança chegar a `main`.
@@ -103,6 +150,16 @@ falhas de migration impedem a inicialização da API e aparecem nos logs do depl
   fechadas.
 - Não há widget CDN incluído neste repositório. A integração usa a API REST ou
   um widget próprio da loja.
+
+## Decisões de engenharia
+
+- O backend é um monólito modular: mantém transações e operação simples enquanto
+  Domain e Application continuam independentes de HTTP, EF Core e Redis.
+- O tenant vem da credencial autenticada e é conferido nas consultas e nas
+  mutações por ID. Testes HTTP com duas lojas exercitam essa fronteira.
+- Redis acelera a resolução das chaves de tenant; PostgreSQL armazena as
+  avaliações e calcula as métricas agregadas. O dashboard recebe atualização
+  SignalR apenas no grupo do próprio tenant.
 
 ## Endpoints essenciais
 

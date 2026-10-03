@@ -71,6 +71,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
         setTimeout(() => this.atualizarGrafico(dados.volumetriaUltimosDias), 0);
       }
     });
+    effect(() => {
+      if (this.dashboardService.atualizacaoRealtime() > 0) {
+        this.carregarComentarios();
+      }
+    }, { allowSignalWrites: true });
   }
 
   ngOnInit(): void {
