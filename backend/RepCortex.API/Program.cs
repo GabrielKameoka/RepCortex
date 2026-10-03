@@ -93,6 +93,8 @@ builder.Services.AddScoped<ITenantService, TenantService>();
 // --- Serviços de Aplicação ---
 builder.Services.AddScoped<RepCortex.Application.Services.AvaliacaoService>();
 builder.Services.AddScoped<RepCortex.Application.Services.DashboardService>();
+builder.Services.AddScoped<IDashboardEventPublisher, DashboardEventPublisher>();
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<RepCortex.Application.Services.TenantSettingsService>();
 builder.Services.AddScoped<RegistrarTenantUseCase>();
 builder.Services.AddScoped<LoginUseCase>();

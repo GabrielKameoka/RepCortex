@@ -18,19 +18,22 @@ public class AvaliacaoService
     private readonly ITenantService _tenantService;
     private readonly ITenantRepository _tenantRepository;
     private readonly IRequestContext _requestContext;
+    private readonly IDashboardEventPublisher _dashboardEvents;
 
     public AvaliacaoService(
         IAvaliacaoRepository repository,
         IAnaliseSentimentoService sentimentService,
         ITenantService tenantService,
         ITenantRepository tenantRepository,
-        IRequestContext requestContext)
+        IRequestContext requestContext,
+        IDashboardEventPublisher dashboardEvents)
     {
         _repository = repository;
         _sentimentService = sentimentService;
         _tenantService = tenantService;
         _tenantRepository = tenantRepository;
         _requestContext = requestContext;
+        _dashboardEvents = dashboardEvents;
     }
 
     public async Task<Avaliacao> CriarAsync(CriarAvaliacaoRequest request)
@@ -66,6 +69,7 @@ public class AvaliacaoService
         );
 
         await _repository.AdicionarAsync(avaliacao);
+        await _dashboardEvents.PublicarAtualizacaoAsync(tenantId);
         return avaliacao;
     }
 
@@ -113,6 +117,7 @@ public class AvaliacaoService
 
         avaliacao.Aprovar();
         await _repository.AtualizarAsync(avaliacao);
+        await _dashboardEvents.PublicarAtualizacaoAsync(tenantId);
     }
 
     public async Task RejeitarAsync(Guid id)
@@ -127,6 +132,7 @@ public class AvaliacaoService
 
         avaliacao.Rejeitar();
         await _repository.AtualizarAsync(avaliacao);
+        await _dashboardEvents.PublicarAtualizacaoAsync(tenantId);
     }
 
     public async Task ResponderAsync(Guid id, string resposta)
@@ -141,5 +147,6 @@ public class AvaliacaoService
 
         avaliacao.Responder(resposta);
         await _repository.AtualizarAsync(avaliacao);
+        await _dashboardEvents.PublicarAtualizacaoAsync(tenantId);
     }
 }

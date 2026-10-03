@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using RepCortex.Domain.Entities;
 using RepCortex.Domain.Entities.Enums;
+using RepCortex.Application.Abstractions.Services;
 using RepCortex.Infrastructure.Data;
 using RepCortex.Infrastructure.Identity;
 
@@ -41,6 +42,9 @@ public static class DemoSeeder
             await db.SaveChangesAsync(cancellationToken);
             logger.LogInformation("Tenant de demonstração criado: {TenantId}", tenant.Id);
         }
+
+        // Os filtros do Identity usam o mesmo contexto de tenant das requisições.
+        services.GetRequiredService<ITenantService>().DefinirTenantId(tenant.Id);
 
         var admin = await userManager.Users
             .IgnoreQueryFilters()

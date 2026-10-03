@@ -57,6 +57,7 @@ export class DashboardService {
   public metricas: WritableSignal<MetricasDashboard | null> = signal<MetricasDashboard | null>(null);
   public carregando = signal<boolean>(false);
   public erroMetricas = signal<string | null>(null);
+  public atualizacaoRealtime = signal(0);
 
   constructor(private http: HttpClient, private authService: AuthService) {}
 
@@ -107,6 +108,7 @@ export class DashboardService {
 
     this.hubConnection.on('ReceberMetricasAtualizadas', (novasMetricas: MetricasDashboard) => {
       this.metricas.set(novasMetricas);
+      this.atualizacaoRealtime.update(valor => valor + 1);
     });
   }
 
