@@ -16,8 +16,8 @@ flowchart LR
     Infra --> PG[(PostgreSQL)]
     Infra --> Redis[(Redis: cache de chaves de tenant)]
     Infra --> ML[Análise de sentimento]
-    Admin -.->|conexão SignalR| Hub[DashboardHub]
-    API --> Hub
+    Admin <-->|SignalR: métricas e fila| Hub[DashboardHub]
+    API -->|evento no grupo do tenant| Hub
 ```
 
 1. O cadastro cria o tenant e seu administrador, devolvendo JWT, `publishableKey` e `secretKey`. O cadastro define o tenant no escopo antes das operações de Identity.
@@ -61,14 +61,14 @@ Para uma nova funcionalidade:
 4. Valide com `dotnet build backend/RepCortex.sln -c Release -warnaserror`, `dotnet test backend/RepCortex.sln -c Release` e, para alterações de API, o smoke HTTP documentado no README. Para alterações do dashboard, execute `npm run build` em `frontend/` e confira o fluxo no navegador.
 5. Registre no PR o comportamento testado e qualquer limite ainda não verificado. O fluxo habitual é branch de `develop`, PR para `develop` e promoção posterior para `main`.
 
-O CI do backend compila, executa testes, faz um smoke HTTP com PostgreSQL e Redis e constrói a imagem Docker. O workflow só é acionado por mudanças em caminhos de backend e infraestrutura listados nele; uma mudança apenas nestes documentos pode não dispará-lo.
+O CI do backend compila, executa testes, faz um smoke HTTP com PostgreSQL e Redis e constrói a imagem Docker. O smoke cria dois tenants e verifica isolamento nas consultas e ações. O CI do frontend compila e executa os testes Angular. O Compose de demonstração na raiz sobe API, dashboard, PostgreSQL e Redis com dados locais descartáveis.
 
 ## Roadmap arquitetural proposto
 
 Estes itens **não** descrevem capacidades já entregues. Priorize pelo impacto observado ao trabalhar na área:
 
-1. **Fechar o fluxo em tempo real.** O dashboard abre `DashboardHub` e escuta `ReceberMetricasAtualizadas`, mas não há publicação desse evento no backend atual. Publicar após mudanças relevantes, sempre no grupo do tenant, e verificar uma atualização completa no navegador.
-2. **Escalar as métricas.** `DashboardService` carrega todas as avaliações do tenant em memória para calcular o resumo. Mover agregações e recortes temporais para consultas no banco antes de tratar volumes maiores, preservando os resultados do contrato atual.
-3. **Ampliar a prova de isolamento.** Cobrir com testes HTTP e banco o acesso cruzado entre dois tenants, inclusive avaliações por ID, chave pública, JWT e listagem pública. Manter os testes de direção de dependências existentes.
+1. **Medir o desempenho em volumes maiores.** As métricas são agregadas no PostgreSQL e o gráfico cobre os últimos sete dias em UTC. Medir latência e plano de execução antes de adicionar índices específicos ou cache de métricas.
+2. **Ampliar a prova de isolamento.** O smoke HTTP já verifica duas lojas, JWT, chaves públicas, ações por ID e listagem. Acrescentar cenários de revogação de chave e domínios autorizados quando esses fluxos evoluírem.
+3. **Operar em produção.** Adicionar health checks e telemetria conforme a necessidade operacional medida; não presumir que uma conexão SignalR ativa prove entrega contínua após falhas de infraestrutura.
 
 Revise este guia quando o código ou os contratos mudarem; não apresente itens do roadmap como funcionalidades prontas.

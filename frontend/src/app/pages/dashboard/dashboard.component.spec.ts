@@ -14,6 +14,7 @@ describe('DashboardComponent', () => {
   beforeEach(() => {
     dashboardService = {
       metricas: signal(null), carregando: signal(false), erroMetricas: signal(null),
+      atualizacaoRealtime: signal(0),
       obtenerMetricasIniciais: jasmine.createSpy('obtenerMetricasIniciais'),
       obterAvaliacoes: jasmine.createSpy('obterAvaliacoes').and.returnValue(of([
         { id: '1', produtoId: 'sku-1', usuarioIdExterno: 'autor-1', nomeUsuarioExterno: 'Mariana', nota: 5, comentario: 'Gostei', status: 'Pendente', sentimento: 'Positivo', dataCriacao: '2026-10-01T12:00:00Z' },
@@ -55,5 +56,11 @@ describe('DashboardComponent', () => {
     expect(dashboardService.obterAvaliacoes).toHaveBeenCalledTimes(2);
     expect(dashboardService.obtenerMetricasIniciais).toHaveBeenCalledTimes(2);
     expect(component.mensagemAcao()).toBe('Avaliação aprovada.');
+  });
+
+  it('refreshes the review queue after a realtime event', () => {
+    dashboardService.atualizacaoRealtime.set(1);
+    fixture.detectChanges();
+    expect(dashboardService.obterAvaliacoes).toHaveBeenCalledTimes(2);
   });
 });
