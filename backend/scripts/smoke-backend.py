@@ -64,6 +64,20 @@ def main():
     assert registration["publishableKey"].startswith("rc_pub_")
     assert registration["tokenJWT"]
 
+    other_slug = f"other-{suffix}"
+    other_registration, _ = call(
+        "POST", "/api/auth/registrar", 200,
+        {
+            "tenantIdSlug": other_slug,
+            "nomeComercial": "Outra Loja",
+            "nomeCompletoUsuario": "Outro Admin",
+            "email": f"other-{suffix}@example.test",
+            "senha": password,
+        },
+        {"Origin": DASHBOARD_ORIGIN},
+    )
+    other_token = other_registration["tokenJWT"]
+
     login, _ = call(
         "POST", "/api/auth/login", 200,
         {"tenantId": slug, "email": email, "senha": password},
@@ -88,6 +102,14 @@ def main():
     )
     assert created["produtoId"] == review["produtoId"]
 
+    other_created, _ = call(
+        "POST", public_path, 201,
+        {**review, "usuarioIdExterno": f"other-author-{suffix}",
+         "fingerprint": f"other-fingerprint-{suffix}"},
+        {"Origin": "http://localhost:4200",
+         "X-Api-Key": other_registration["publishableKey"]},
+    )
+
     admin_headers = {"Origin": DASHBOARD_ORIGIN, "Authorization": f"Bearer {token}"}
     test_review, _ = call(
         "POST", "/api/admin/integracao/avaliacoes-teste", 201,
@@ -99,6 +121,18 @@ def main():
 
     reviews, _ = call("GET", "/api/admin/avaliacoes", 200, headers=admin_headers)
     assert len(reviews) == 2
+    assert all(item["id"] != other_created["id"] for item in reviews)
+    other_admin_headers = {
+        "Origin": DASHBOARD_ORIGIN, "Authorization": f"Bearer {other_token}"
+    }
+    other_reviews, _ = call(
+        "GET", "/api/admin/avaliacoes", 200, headers=other_admin_headers)
+    assert [item["id"] for item in other_reviews] == [other_created["id"]]
+    for action in ("aprovar", "rejeitar", "responder"):
+        call("POST", f"/api/admin/avaliacoes/{created['id']}/{action}", 404,
+             {"resposta": "Sem acesso"} if action == "responder" else None,
+             other_admin_headers)
+
     call("POST", f"/api/admin/avaliacoes/{created['id']}/aprovar", 200, headers=admin_headers)
     public_query = urlencode({"produtoId": review["produtoId"]})
     visible, _ = call(
@@ -106,7 +140,19 @@ def main():
         headers={"Origin": "http://localhost:4200", "X-Api-Key": registration["publishableKey"]},
     )
     assert any(item["id"] == created["id"] for item in visible["itens"])
-    print("Backend smoke passed: migrations, CORS, registration, login, reviews and moderation.")
+    assert all("nomeUsuarioExterno" not in item and "usuarioIdExterno" not in item
+               for item in visible["itens"])
+    other_visible, _ = call(
+        "GET", f"{public_path}?{public_query}", 200,
+        headers={"Origin": "http://localhost:4200",
+                 "X-Api-Key": other_registration["publishableKey"]},
+    )
+    assert all(item["id"] != created["id"] for item in other_visible["itens"])
+    other_metrics, _ = call(
+        "GET", "/api/admin/dashboard/metricas", 200,
+        headers=other_admin_headers)
+    assert other_metrics["totalAvaliacoes"] == 1
+    print("Backend smoke passed: migrations, CORS, two-tenant isolation, reviews and moderation.")
 
 
 if __name__ == "__main__":
